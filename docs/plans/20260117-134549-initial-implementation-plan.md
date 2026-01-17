@@ -1,8 +1,28 @@
 # ローカルDeep Researchシステム 実装計画
 
 **作成日**: 2026-01-17
+**最終更新**: 2026-01-17
 **ベースドキュメント**: [initial-plan.md](initial-plan.md)
 **開発方針**: TDD（テスト駆動開発）
+
+---
+
+## 進捗サマリー
+
+| フェーズ | 内容 | 状態 |
+|---------|------|------|
+| 1.1 | Docker環境セットアップ | ✅ 完了 |
+| 1.2 | モデル準備 | ✅ 完了 |
+| 2.1 | プロジェクト初期化 | ✅ 完了 |
+| 2.2 | 依存ライブラリ | ✅ 完了 |
+| 3.1 | config.py | ✅ 完了（8テスト） |
+| 3.2 | state.py | ✅ 完了（12テスト） |
+| 3.3 | ツール実装 | 📝 スタブ作成済み |
+| 3.4 | プロンプトテンプレート | 📝 スタブ作成済み |
+| 4.x | LangGraphノード | 📝 スタブ作成済み |
+| 5.x | グラフ構築 | 📝 スタブ作成済み |
+
+**テスト**: 20テストパス / カバレッジ 48%
 
 ---
 
@@ -32,19 +52,19 @@ GTX 1660 SUPER（6GB VRAM）環境で動作する自律型Deep Researchエージ
 > **TDD適用**: 困難（外部依存）
 > **確認方法**: ヘルスチェックスクリプトで動作確認
 
-### 1.1 Docker環境のセットアップ
-- [ ] NVIDIA Container Toolkitのインストール確認
-- [ ] `docker-compose.yaml`の作成
+### 1.1 Docker環境のセットアップ ✅ 完了
+- [x] NVIDIA Container Toolkitのインストール確認
+- [x] `docker-compose.yaml`の作成
   - Ollamaサービス（GPU対応、Flash Attention有効化）
   - SearXNGサービス（メタ検索エンジン）
-- [ ] SearXNG設定ファイルの作成（`searxng/settings.yml`）
-  - 使用する検索エンジンの選定（Google, Bing, DuckDuckGo等）
+- [x] SearXNG設定ファイルの作成（`searxng/settings.yml`）
+  - 使用する検索エンジンの選定（Google, Bing, DuckDuckGo, Wikipedia, arXiv, Semantic Scholar）
   - JSON API出力の有効化
 
-### 1.2 モデルの準備
-- [ ] Plannerモデル: `deepseek-r1:7b`のプル
-- [ ] Workerモデル: `qwen2.5:3b`のプル
-- [ ] 各モデルのVRAM使用量検証
+### 1.2 モデルの準備 ✅ 完了
+- [x] Plannerモデル: `deepseek-r1:7b`のプル（4.7GB）
+- [x] Workerモデル: `qwen2.5:3b`のプル（1.9GB）
+- [x] 各モデルのVRAM使用量検証
 
 ### 1.3 確認手順（TDD代替）
 ```bash
@@ -65,32 +85,34 @@ docker exec ollama nvidia-smi
 
 ---
 
-## フェーズ2: Pythonプロジェクト構造の構築
+## フェーズ2: Pythonプロジェクト構造の構築 ✅ 完了
 
 > **TDD適用**: 可能
 > **方針**: テストインフラを先に構築
 
-### 2.1 プロジェクト初期化
-- [ ] `pyproject.toml`の作成（pytest, mypy, ruff含む）
-- [ ] 仮想環境のセットアップ（uv推奨）
-- [ ] `tests/conftest.py`の作成（共通fixture定義）
-- [ ] `pytest`が実行できることを確認
+### 2.1 プロジェクト初期化 ✅ 完了
+- [x] `pyproject.toml`の作成（pytest, mypy, ruff含む）
+- [x] `.python-version`の作成（Python 3.10）
+- [x] 仮想環境のセットアップ（uv使用、128パッケージインストール）
+- [x] `tests/conftest.py`の作成（共通fixture定義）
+- [x] `pytest`が実行できることを確認（20テストパス）
 
-### 2.2 依存ライブラリ
+### 2.2 依存ライブラリ ✅ インストール済み
 ```
 # 本体
-langgraph
-langchain-ollama
-crawl4ai
-aiohttp
-pydantic
+langgraph>=0.6.0
+langchain-ollama>=0.2.0
+langchain-core>=0.3.0
+crawl4ai>=0.4.0
+aiohttp>=3.9.0
+pydantic>=2.0.0
 
 # 開発用
-pytest
-pytest-cov
-pytest-asyncio
-mypy
-ruff
+pytest>=8.0.0
+pytest-cov>=4.0.0
+pytest-asyncio>=0.23.0
+mypy>=1.8.0
+ruff>=0.4.0
 ```
 
 ### 2.3 ディレクトリ構造
@@ -134,27 +156,27 @@ local-deep-research/
 > **TDD適用**: 可能
 > **方針**: 各モジュールでテストを先に書く
 
-### 3.1 設定管理 (`config.py`)
+### 3.1 設定管理 (`config.py`) ✅ 完了
 
-**テストファースト**: `tests/test_config.py`を先に作成
-- [ ] Ollamaエンドポイント設定
-- [ ] SearXNGエンドポイント設定
-- [ ] モデル名の定義（Planner/Worker）
-- [ ] コンテキスト長制限の設定
+**テストファースト**: `tests/test_config.py`を先に作成（8テスト）
+- [x] Ollamaエンドポイント設定（環境変数対応）
+- [x] SearXNGエンドポイント設定（環境変数対応）
+- [x] モデル名の定義（Planner: deepseek-r1:7b / Worker: qwen2.5:3b）
+- [x] コンテキスト長制限の設定（max_context_length, max_iterations）
 
-### 3.2 状態定義 (`state.py`)
+### 3.2 状態定義 (`state.py`) ✅ 完了
 
-**テストファースト**: `tests/test_state.py`を先に作成
-- [ ] `ResearchState` TypedDictの実装
+**テストファースト**: `tests/test_state.py`を先に作成（12テスト）
+- [x] `ResearchState` TypedDictの実装
   - `task`: ユーザーの元の質問
   - `plan`: 検索計画（サブクエリリスト）
   - `steps_completed`: 実行ステップ数
   - `content`: 要約済み情報リスト（Annotated + operator.add）
   - `current_search_query`: 現在のクエリ
-  - `references`: 引用元URLリスト
+  - `references`: 引用元URLリスト（Annotated + operator.add）
   - `is_sufficient`: 情報充足フラグ
 
-### 3.3 ツール実装
+### 3.3 ツール実装 📝 スタブ作成済み
 
 #### 3.3.1 検索ツール (`tools/search.py`)
 
@@ -171,7 +193,7 @@ local-deep-research/
 - [ ] メモリ管理（1ページずつ順次処理）
 - [ ] タイムアウト・エラーハンドリング
 
-### 3.4 プロンプトテンプレート (`prompts/templates.py`)
+### 3.4 プロンプトテンプレート (`prompts/templates.py`) 📝 スタブ作成済み
 
 **テストファースト**: `tests/test_prompts.py`を先に作成
 - [ ] Planner用プロンプト（JSON出力強制）
@@ -180,17 +202,18 @@ local-deep-research/
 - [ ] Writer用プロンプト（レポート生成）
 
 **成果物**:
-- 設定管理モジュール
-- 状態定義
-- 検索・スクレイピングツール
-- プロンプトテンプレート集
+- ✅ 設定管理モジュール（実装済み）
+- ✅ 状態定義（実装済み）
+- 📝 検索・スクレイピングツール（スタブ）
+- 📝 プロンプトテンプレート集（スタブ）
 
 ---
 
-## フェーズ4: LangGraphノードの実装
+## フェーズ4: LangGraphノードの実装 📝 スタブ作成済み
 
 > **TDD適用**: 部分的に可能
 > **方針**: モックLLMレスポンスを使用してロジックをテスト
+> **現状**: 全ノードのスタブファイル作成済み（NotImplementedError）
 
 ### 4.1 Plannerノード (`nodes/planner.py`)
 
@@ -241,10 +264,11 @@ local-deep-research/
 
 ---
 
-## フェーズ5: グラフの構築と統合
+## フェーズ5: グラフの構築と統合 📝 スタブ作成済み
 
 > **TDD適用**: 可能
 > **方針**: グラフ構造のテスト + モックノードを使用した統合テスト
+> **現状**: `graph.py` と `main.py` のスタブファイル作成済み
 
 ### 5.1 グラフ定義 (`graph.py`)
 
@@ -356,23 +380,29 @@ OLLAMA_KEEP_ALIVE=24h
 
 ## 実装優先度
 
-| 優先度 | フェーズ | 理由 |
-|--------|----------|------|
-| P0 | フェーズ1 | 基盤なしには何も動かない |
-| P0 | フェーズ2 | プロジェクト構造の確立 |
-| P1 | フェーズ3 | コア機能の実装 |
-| P1 | フェーズ4 | ノードの実装 |
-| P1 | フェーズ5 | 統合 |
-| P2 | フェーズ6 | 品質向上 |
-| P3 | フェーズ7 | 仕上げ |
+| 優先度 | フェーズ | 理由 | 状態 |
+|--------|----------|------|------|
+| P0 | フェーズ1 | 基盤なしには何も動かない | ✅ 完了 |
+| P0 | フェーズ2 | プロジェクト構造の確立 | ✅ 完了 |
+| P1 | フェーズ3 | コア機能の実装 | 🔄 進行中 |
+| P1 | フェーズ4 | ノードの実装 | 📝 スタブ |
+| P1 | フェーズ5 | 統合 | 📝 スタブ |
+| P2 | フェーズ6 | 品質向上 | ⏳ 未着手 |
+| P3 | フェーズ7 | 仕上げ | ⏳ 未着手 |
 
 ---
 
 ## 次のアクション
 
-1. `docker-compose.yaml`の作成とDocker環境の起動
-2. SearXNGの設定とAPI動作確認
-3. Ollamaでのモデルプルとテスト推論
+~~1. `docker-compose.yaml`の作成とDocker環境の起動~~ ✅ 完了
+~~2. SearXNGの設定とAPI動作確認~~ ✅ 完了
+~~3. Ollamaでのモデルプルとテスト推論~~ ✅ 完了
+
+**現在の次のステップ（フェーズ3-4）:**
+1. `tools/search.py` の TDD 実装
+2. `tools/scrape.py` の TDD 実装
+3. `prompts/templates.py` の TDD 実装
+4. 各ノード（`nodes/*.py`）の TDD 実装
 
 ---
 
