@@ -55,5 +55,16 @@ reports/
 Thumbs.db
 
 # uv
-.python-version
 uv.lock
+
+# Coverage
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# mypy
+.mypy_cache/
+
+# ruff
+.ruff_cache/
