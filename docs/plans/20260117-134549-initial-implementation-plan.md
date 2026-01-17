@@ -1,7 +1,7 @@
 # ローカルDeep Researchシステム 実装計画
 
 **作成日**: 2026-01-17
-**最終更新**: 2026-01-17
+**最終更新**: 2026-01-17 20:55
 **ベースドキュメント**: [initial-plan.md](initial-plan.md)
 **開発方針**: TDD（テスト駆動開発）
 
@@ -17,12 +17,12 @@
 | 2.2 | 依存ライブラリ | ✅ 完了 |
 | 3.1 | config.py | ✅ 完了（8テスト） |
 | 3.2 | state.py | ✅ 完了（12テスト） |
-| 3.3 | ツール実装 | 📝 スタブ作成済み |
+| 3.3 | ツール実装 | ✅ 完了（26テスト） |
 | 3.4 | プロンプトテンプレート | 📝 スタブ作成済み |
 | 4.x | LangGraphノード | 📝 スタブ作成済み |
 | 5.x | グラフ構築 | 📝 スタブ作成済み |
 
-**テスト**: 20テストパス / カバレッジ 48%
+**テスト**: 46テストパス / カバレッジ 96%（tools）
 
 ---
 
@@ -176,22 +176,22 @@ local-deep-research/
   - `references`: 引用元URLリスト（Annotated + operator.add）
   - `is_sufficient`: 情報充足フラグ
 
-### 3.3 ツール実装 📝 スタブ作成済み
+### 3.3 ツール実装 ✅ 完了
 
-#### 3.3.1 検索ツール (`tools/search.py`)
+#### 3.3.1 検索ツール (`tools/search.py`) ✅ 完了
 
-**テストファースト**: `tests/tools/test_search.py`を先に作成（モックサーバー使用）
-- [ ] SearXNG APIクライアントの実装
-- [ ] 検索結果のパース（タイトル、URL、スニペット）
-- [ ] エラーハンドリング
+**テストファースト**: `tests/tools/test_search.py`を先に作成（13テスト）
+- [x] SearXNG APIクライアントの実装（aiohttp使用）
+- [x] 検索結果のパース（SearchResult dataclass）
+- [x] エラーハンドリング（SearchError）
 
-#### 3.3.2 スクレイピングツール (`tools/scrape.py`)
+#### 3.3.2 スクレイピングツール (`tools/scrape.py`) ✅ 完了
 
-**テストファースト**: `tests/tools/test_scrape.py`を先に作成（ローカルHTMLファイル使用）
-- [ ] Crawl4AIの初期化と設定
-- [ ] Markdown変換機能の利用
-- [ ] メモリ管理（1ページずつ順次処理）
-- [ ] タイムアウト・エラーハンドリング
+**テストファースト**: `tests/tools/test_scrape.py`を先に作成（13テスト）
+- [x] Crawl4AIの初期化と設定（AsyncWebCrawler）
+- [x] Markdown変換機能の利用
+- [x] メモリ管理（scrape_multiple: 順次処理）
+- [x] タイムアウト・エラーハンドリング（ScrapeResult.success=False）
 
 ### 3.4 プロンプトテンプレート (`prompts/templates.py`) 📝 スタブ作成済み
 
@@ -204,7 +204,8 @@ local-deep-research/
 **成果物**:
 - ✅ 設定管理モジュール（実装済み）
 - ✅ 状態定義（実装済み）
-- 📝 検索・スクレイピングツール（スタブ）
+- ✅ 検索ツール（実装済み、13テスト）
+- ✅ スクレイピングツール（実装済み、13テスト）
 - 📝 プロンプトテンプレート集（スタブ）
 
 ---
@@ -399,9 +400,9 @@ OLLAMA_KEEP_ALIVE=24h
 ~~3. Ollamaでのモデルプルとテスト推論~~ ✅ 完了
 
 **現在の次のステップ（フェーズ3-4）:**
-1. `tools/search.py` の TDD 実装
-2. `tools/scrape.py` の TDD 実装
-3. `prompts/templates.py` の TDD 実装
+~~1. `tools/search.py` の TDD 実装~~ ✅ 完了
+~~2. `tools/scrape.py` の TDD 実装~~ ✅ 完了
+3. `prompts/templates.py` のテスト作成
 4. 各ノード（`nodes/*.py`）の TDD 実装
 
 ---
