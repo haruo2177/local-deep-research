@@ -2,6 +2,22 @@
 
 **作成日**: 2026-01-17
 **ベースドキュメント**: [initial-plan.md](initial-plan.md)
+**開発方針**: TDD（テスト駆動開発）
+
+---
+
+## 開発方針
+
+本プロジェクトはTDD（テスト駆動開発）を前提として進める。
+
+### TDDサイクル
+1. **Red**: 失敗するテストを先に書く
+2. **Green**: テストが通る最小限の実装を書く
+3. **Refactor**: コードをリファクタリングする
+
+### TDDが困難な領域の確認方法
+外部依存（Docker、Ollama、SearXNG等）がある部分は、確認手順を文書化してから実装する。
+詳細は [CLAUDE.md](../CLAUDE.md) を参照。
 
 ---
 
@@ -12,6 +28,9 @@ GTX 1660 SUPER（6GB VRAM）環境で動作する自律型Deep Researchエージ
 ---
 
 ## フェーズ1: 基盤環境の構築
+
+> **TDD適用**: 困難（外部依存）
+> **確認方法**: ヘルスチェックスクリプトで動作確認
 
 ### 1.1 Docker環境のセットアップ
 - [ ] NVIDIA Container Toolkitのインストール確認
@@ -27,6 +46,18 @@ GTX 1660 SUPER（6GB VRAM）環境で動作する自律型Deep Researchエージ
 - [ ] Workerモデル: `qwen2.5:3b`のプル
 - [ ] 各モデルのVRAM使用量検証
 
+### 1.3 確認手順（TDD代替）
+```bash
+# Ollamaヘルスチェック
+curl http://localhost:11434/api/tags
+
+# SearXNGヘルスチェック
+curl "http://localhost:8080/search?q=test&format=json"
+
+# GPU認識確認
+docker exec ollama nvidia-smi
+```
+
 **成果物**:
 - `docker-compose.yaml`
 - `searxng/settings.yml`
@@ -36,17 +67,30 @@ GTX 1660 SUPER（6GB VRAM）環境で動作する自律型Deep Researchエージ
 
 ## フェーズ2: Pythonプロジェクト構造の構築
 
+> **TDD適用**: 可能
+> **方針**: テストインフラを先に構築
+
 ### 2.1 プロジェクト初期化
-- [ ] `pyproject.toml`または`requirements.txt`の作成
-- [ ] 仮想環境のセットアップ（uv, poetry, または venv）
+- [ ] `pyproject.toml`の作成（pytest, mypy, ruff含む）
+- [ ] 仮想環境のセットアップ（uv推奨）
+- [ ] `tests/conftest.py`の作成（共通fixture定義）
+- [ ] `pytest`が実行できることを確認
 
 ### 2.2 依存ライブラリ
 ```
+# 本体
 langgraph
 langchain-ollama
 crawl4ai
 aiohttp
 pydantic
+
+# 開発用
+pytest
+pytest-cov
+pytest-asyncio
+mypy
+ruff
 ```
 
 ### 2.3 ディレクトリ構造
@@ -87,13 +131,20 @@ local-deep-research/
 
 ## フェーズ3: コアコンポーネントの実装
 
+> **TDD適用**: 可能
+> **方針**: 各モジュールでテストを先に書く
+
 ### 3.1 設定管理 (`config.py`)
+
+**テストファースト**: `tests/test_config.py`を先に作成
 - [ ] Ollamaエンドポイント設定
 - [ ] SearXNGエンドポイント設定
 - [ ] モデル名の定義（Planner/Worker）
 - [ ] コンテキスト長制限の設定
 
 ### 3.2 状態定義 (`state.py`)
+
+**テストファースト**: `tests/test_state.py`を先に作成
 - [ ] `ResearchState` TypedDictの実装
   - `task`: ユーザーの元の質問
   - `plan`: 検索計画（サブクエリリスト）
@@ -106,17 +157,23 @@ local-deep-research/
 ### 3.3 ツール実装
 
 #### 3.3.1 検索ツール (`tools/search.py`)
+
+**テストファースト**: `tests/tools/test_search.py`を先に作成（モックサーバー使用）
 - [ ] SearXNG APIクライアントの実装
 - [ ] 検索結果のパース（タイトル、URL、スニペット）
 - [ ] エラーハンドリング
 
 #### 3.3.2 スクレイピングツール (`tools/scrape.py`)
+
+**テストファースト**: `tests/tools/test_scrape.py`を先に作成（ローカルHTMLファイル使用）
 - [ ] Crawl4AIの初期化と設定
 - [ ] Markdown変換機能の利用
 - [ ] メモリ管理（1ページずつ順次処理）
 - [ ] タイムアウト・エラーハンドリング
 
 ### 3.4 プロンプトテンプレート (`prompts/templates.py`)
+
+**テストファースト**: `tests/test_prompts.py`を先に作成
 - [ ] Planner用プロンプト（JSON出力強制）
 - [ ] Summarizer用プロンプト
 - [ ] Reviewer用プロンプト（情報充足判定）
@@ -132,41 +189,69 @@ local-deep-research/
 
 ## フェーズ4: LangGraphノードの実装
 
+> **TDD適用**: 部分的に可能
+> **方針**: モックLLMレスポンスを使用してロジックをテスト
+
 ### 4.1 Plannerノード (`nodes/planner.py`)
+
+**テストファースト**: `tests/nodes/test_planner.py`を先に作成
+- テスト: モックLLMレスポンスからのJSON解析
+- テスト: パース失敗時のリトライロジック
 - [ ] DeepSeek R1モデルの呼び出し
 - [ ] ユーザー入力からサブクエリへの分解
 - [ ] JSON出力のパースとバリデーション
 - [ ] パース失敗時のリトライロジック
 
+**LLM出力品質の確認方法**: 手動テスト + サンプル入出力の記録
+
 ### 4.2 Researcherノード (`nodes/researcher.py`)
+
+**テストファースト**: `tests/nodes/test_researcher.py`を先に作成
 - [ ] 計画に基づく検索クエリの発行
 - [ ] SearXNGツールの呼び出し
 - [ ] URLリストの状態への保存
 
 ### 4.3 Scraper & Summarizerノード (`nodes/scraper.py`)
+
+**テストファースト**: `tests/nodes/test_scraper.py`を先に作成
 - [ ] URLからのコンテンツ取得（Crawl4AI）
 - [ ] Workerモデル（Qwen 2.5 3B）による即時要約
 - [ ] 要約結果の状態への追加
 - [ ] 参照URLの記録
 
 ### 4.4 Reviewerノード (`nodes/reviewer.py`)
+
+**テストファースト**: `tests/nodes/test_reviewer.py`を先に作成
+- テスト: 情報充足時のルーティング
+- テスト: 情報不足時のルーティング
 - [ ] 収集情報の充足度判定
 - [ ] 不足時: Researcherへの戻り指示
 - [ ] 充足時: Writerへの進行指示
 
 ### 4.5 Writerノード (`nodes/writer.py`)
+
+**テストファースト**: `tests/nodes/test_writer.py`を先に作成
 - [ ] 蓄積情報の統合
 - [ ] 最終レポートの生成（DeepSeek R1使用）
 - [ ] 引用元URLの明記
 
 **成果物**:
 - 全5ノードの実装
+- 各ノードの単体テスト
 
 ---
 
 ## フェーズ5: グラフの構築と統合
 
+> **TDD適用**: 可能
+> **方針**: グラフ構造のテスト + モックノードを使用した統合テスト
+
 ### 5.1 グラフ定義 (`graph.py`)
+
+**テストファースト**: `tests/test_graph.py`を先に作成
+- テスト: グラフにすべてのノードが登録されている
+- テスト: エッジが正しく定義されている
+- テスト: 条件分岐が正しく動作する（モックノード使用）
 - [ ] StateGraphの初期化
 - [ ] 各ノードの追加
 - [ ] エッジ（遷移）の定義
@@ -183,6 +268,10 @@ local-deep-research/
 - [ ] 入力・出力インターフェースの定義
 
 ### 5.3 エントリーポイント (`main.py`)
+
+**テストファースト**: `tests/test_main.py`を先に作成
+- テスト: CLI引数のパース
+- テスト: 出力フォーマット
 - [ ] CLIインターフェースの実装
 - [ ] 非同期実行のセットアップ
 - [ ] 結果の出力（Markdown形式）
@@ -190,28 +279,41 @@ local-deep-research/
 **成果物**:
 - 完成したLangGraphワークフロー
 - 実行可能なCLIアプリケーション
+- グラフ構造のテスト
 
 ---
 
-## フェーズ6: 最適化とテスト
+## フェーズ6: 最適化と品質保証
+
+> **TDD適用**: 部分的に可能
+> **方針**: エラーハンドリングはTDD、パフォーマンスは手動計測
 
 ### 6.1 VRAM最適化
-- [ ] 実際のメモリ使用量の計測
+
+**確認方法**: 手動計測 + ログ記録
+- [ ] 実際のメモリ使用量の計測（nvidia-smi）
 - [ ] コンテキスト長の調整
 - [ ] モデル切り替えのバッチ化検討
 
 ### 6.2 エラーハンドリング強化
+
+**テストファースト**: 各モジュールのエラーケーステストを追加
 - [ ] ネットワークエラーのリトライ
 - [ ] モデル出力のバリデーション
 - [ ] タイムアウト処理
 
-### 6.3 テスト
-- [ ] 単体テスト（各ツール、各ノード）
-- [ ] 統合テスト（エンドツーエンド）
+### 6.3 統合テスト
+
+**テストファースト**: `tests/integration/`を作成
+- [ ] エンドツーエンドテスト（モックサービス使用）
 - [ ] パフォーマンステスト（処理時間、メモリ使用量）
 
+### 6.4 テストカバレッジ目標
+- 単体テスト: 80%以上
+- 統合テスト: 主要フロー100%
+
 **成果物**:
-- テストスイート
+- 完成したテストスイート
 - パフォーマンスレポート
 
 ---
