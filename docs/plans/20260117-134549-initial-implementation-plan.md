@@ -1,7 +1,7 @@
 # ローカルDeep Researchシステム 実装計画
 
 **作成日**: 2026-01-17
-**最終更新**: 2026-01-17 21:40
+**最終更新**: 2026-01-18
 **ベースドキュメント**: [initial-plan.md](initial-plan.md)
 **開発方針**: TDD（テスト駆動開発）
 
@@ -19,11 +19,11 @@
 | 3.2 | state.py | ✅ 完了（12テスト） |
 | 3.3 | ツール実装 | ✅ 完了（26テスト） |
 | 3.4 | プロンプトテンプレート | ✅ 完了（13テスト） |
-| 3.5 | デモモード | ✅ 完了（4テスト） |
-| 4.x | LangGraphノード | 📝 スタブ作成済み |
+| 3.5 | デモモード | ✅ 完了（6テスト） |
+| 4.x | LangGraphノード | ✅ 完了（51テスト） |
 | 5.x | グラフ構築 | 📝 スタブ作成済み |
 
-**テスト**: 63テストパス / カバレッジ 88%
+**テスト**: 116テストパス / カバレッジ 95%
 
 ---
 
@@ -205,9 +205,11 @@ local-deep-research/
 
 ### 3.5 デモモード (`main.py`) ✅ 完了
 
-**テストファースト**: `tests/test_main.py`を先に作成（4テスト）
+**テストファースト**: `tests/test_main.py`を先に作成（6テスト）
 - [x] `--demo search` で検索ツールの動作確認
 - [x] `--demo scrape` でスクレイピングツールの動作確認
+- [x] `--demo plan` でPlannerノードの動作確認
+- [x] `--demo summarize` でLLM要約の動作確認
 
 **成果物**:
 - ✅ 設定管理モジュール（実装済み）
@@ -219,58 +221,65 @@ local-deep-research/
 
 ---
 
-## フェーズ4: LangGraphノードの実装 📝 スタブ作成済み
+## フェーズ4: LangGraphノードの実装 ✅ 完了
 
-> **TDD適用**: 部分的に可能
+> **TDD適用**: 完全適用（モックLLMレスポンス使用）
 > **方針**: モックLLMレスポンスを使用してロジックをテスト
-> **現状**: 全ノードのスタブファイル作成済み（NotImplementedError）
+> **テスト**: 51テスト（llm: 7, planner: 11, researcher: 8, scraper: 8, reviewer: 9, writer: 8）
 
-### 4.1 Plannerノード (`nodes/planner.py`)
+### 4.0 LLMユーティリティ (`llm.py`) ✅ 完了
 
-**テストファースト**: `tests/nodes/test_planner.py`を先に作成
-- テスト: モックLLMレスポンスからのJSON解析
-- テスト: パース失敗時のリトライロジック
-- [ ] DeepSeek R1モデルの呼び出し
-- [ ] ユーザー入力からサブクエリへの分解
-- [ ] JSON出力のパースとバリデーション
-- [ ] パース失敗時のリトライロジック
+**テストファースト**: `tests/test_llm.py`（7テスト）
+- [x] langchain_ollama統合
+- [x] タイムアウト・接続エラーハンドリング
+- [x] LLMError例外クラス
 
-**LLM出力品質の確認方法**: 手動テスト + サンプル入出力の記録
+### 4.1 Plannerノード (`nodes/planner.py`) ✅ 完了
 
-### 4.2 Researcherノード (`nodes/researcher.py`)
+**テストファースト**: `tests/nodes/test_planner.py`（11テスト）
+- [x] DeepSeek R1モデルの呼び出し
+- [x] ユーザー入力からサブクエリへの分解
+- [x] JSON出力のパースとバリデーション
+- [x] パース失敗時のリトライロジック（最大3回）
+- [x] PlannerError例外クラス
 
-**テストファースト**: `tests/nodes/test_researcher.py`を先に作成
-- [ ] 計画に基づく検索クエリの発行
-- [ ] SearXNGツールの呼び出し
-- [ ] URLリストの状態への保存
+### 4.2 Researcherノード (`nodes/researcher.py`) ✅ 完了
 
-### 4.3 Scraper & Summarizerノード (`nodes/scraper.py`)
+**テストファースト**: `tests/nodes/test_researcher.py`（8テスト）
+- [x] 計画に基づく検索クエリの発行
+- [x] SearXNGツールの呼び出し
+- [x] URLリストの状態への保存
+- [x] 重複URLのスキップ
 
-**テストファースト**: `tests/nodes/test_scraper.py`を先に作成
-- [ ] URLからのコンテンツ取得（Crawl4AI）
-- [ ] Workerモデル（Qwen 2.5 3B）による即時要約
-- [ ] 要約結果の状態への追加
-- [ ] 参照URLの記録
+### 4.3 Scraper & Summarizerノード (`nodes/scraper.py`) ✅ 完了
 
-### 4.4 Reviewerノード (`nodes/reviewer.py`)
+**テストファースト**: `tests/nodes/test_scraper.py`（8テスト）
+- [x] URLからのコンテンツ取得（Crawl4AI）
+- [x] Workerモデル（Qwen 2.5 3B）による即時要約
+- [x] 要約結果の状態への追加
+- [x] 参照URLの記録
+- [x] 長いコンテンツのトランケート（10000文字）
 
-**テストファースト**: `tests/nodes/test_reviewer.py`を先に作成
-- テスト: 情報充足時のルーティング
-- テスト: 情報不足時のルーティング
-- [ ] 収集情報の充足度判定
-- [ ] 不足時: Researcherへの戻り指示
-- [ ] 充足時: Writerへの進行指示
+### 4.4 Reviewerノード (`nodes/reviewer.py`) ✅ 完了
 
-### 4.5 Writerノード (`nodes/writer.py`)
+**テストファースト**: `tests/nodes/test_reviewer.py`（9テスト）
+- [x] 収集情報の充足度判定
+- [x] 不足時: Researcherへの戻り指示
+- [x] 充足時: Writerへの進行指示
+- [x] `should_continue_research` 条件付きエッジ関数
 
-**テストファースト**: `tests/nodes/test_writer.py`を先に作成
-- [ ] 蓄積情報の統合
-- [ ] 最終レポートの生成（DeepSeek R1使用）
-- [ ] 引用元URLの明記
+### 4.5 Writerノード (`nodes/writer.py`) ✅ 完了
+
+**テストファースト**: `tests/nodes/test_writer.py`（8テスト）
+- [x] 蓄積情報の統合
+- [x] 最終レポートの生成（DeepSeek R1使用）
+- [x] 引用元URLの明記
+- [x] WriterError例外クラス
 
 **成果物**:
-- 全5ノードの実装
-- 各ノードの単体テスト
+- ✅ 全5ノードの実装
+- ✅ LLMユーティリティ
+- ✅ 各ノードの単体テスト（51テスト）
 
 ---
 
@@ -395,7 +404,7 @@ OLLAMA_KEEP_ALIVE=24h
 | P0 | フェーズ1 | 基盤なしには何も動かない | ✅ 完了 |
 | P0 | フェーズ2 | プロジェクト構造の確立 | ✅ 完了 |
 | P1 | フェーズ3 | コア機能の実装 | ✅ 完了 |
-| P1 | フェーズ4 | ノードの実装 | 📝 スタブ |
+| P1 | フェーズ4 | ノードの実装 | ✅ 完了 |
 | P1 | フェーズ5 | 統合 | 📝 スタブ |
 | P2 | フェーズ6 | 品質向上 | ⏳ 未着手 |
 | P3 | フェーズ7 | 仕上げ | ⏳ 未着手 |
@@ -408,18 +417,27 @@ OLLAMA_KEEP_ALIVE=24h
 ~~2. SearXNGの設定とAPI動作確認~~ ✅ 完了
 ~~3. Ollamaでのモデルプルとテスト推論~~ ✅ 完了
 
-**現在の次のステップ（フェーズ4）:**
+**フェーズ3-4 完了:**
 ~~1. `tools/search.py` の TDD 実装~~ ✅ 完了
 ~~2. `tools/scrape.py` の TDD 実装~~ ✅ 完了
 ~~3. `prompts/templates.py` のテスト作成~~ ✅ 完了
 ~~4. デモモードの実装~~ ✅ 完了
-5. `llm.py` の TDD 実装
-6. 各ノード（`nodes/*.py`）の TDD 実装
+~~5. `llm.py` の TDD 実装~~ ✅ 完了
+~~6. 各ノード（`nodes/*.py`）の TDD 実装~~ ✅ 完了
+
+**現在の次のステップ（フェーズ5）:**
+1. `graph.py` の TDD 実装（StateGraph構築）
+2. ノード間のエッジ定義
+3. `should_continue_research` による条件付きルーティング
+4. 統合テストの作成
+5. `main.py` のフル実行モード実装
 
 **デモモードで動作確認可能:**
 ```bash
 uv run python -m src.main --demo search "Python programming"
 uv run python -m src.main --demo scrape "https://example.com"
+uv run python -m src.main --demo plan "量子コンピュータとは何か"
+uv run python -m src.main --demo summarize "長いテキスト..."
 ```
 
 ---

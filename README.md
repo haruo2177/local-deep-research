@@ -93,6 +93,36 @@ python src/main.py "調査したいテーマ"
 - [SearXNG](https://github.com/searxng/searxng) - プライバシー重視のメタ検索エンジン
 - [Crawl4AI](https://github.com/unclecode/crawl4ai) - LLM向けWebスクレイピング
 
+## 開発状況
+
+| フェーズ | 内容 | 状態 |
+|---------|------|------|
+| Phase 1-2 | 環境構築・プロジェクト初期化 | ✅ 完了 |
+| Phase 3 | コアコンポーネント（config, state, tools, prompts） | ✅ 完了 |
+| Phase 4 | LangGraphノード（planner, researcher, scraper, reviewer, writer） | ✅ 完了 |
+| Phase 5 | グラフ構築・統合 | 📝 未実装 |
+| Phase 6-7 | 最適化・ドキュメント | ⏳ 未着手 |
+
+**テスト**: 116テストパス / カバレッジ 95%
+
+### デモモード
+
+現在、個別コンポーネントのテストが可能です：
+
+```bash
+# 検索テスト
+uv run python -m src.main --demo search "Python programming"
+
+# スクレイピングテスト
+uv run python -m src.main --demo scrape "https://example.com"
+
+# プランナーテスト（検索クエリ生成）
+uv run python -m src.main --demo plan "量子コンピュータとは何か"
+
+# 要約テスト
+uv run python -m src.main --demo summarize "長いテキスト..."
+```
+
 ## ライセンス
 
 MIT License
