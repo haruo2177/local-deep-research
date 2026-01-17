@@ -17,7 +17,7 @@
 
 ### TDDが困難な領域の確認方法
 外部依存（Docker、Ollama、SearXNG等）がある部分は、確認手順を文書化してから実装する。
-詳細は [CLAUDE.md](../CLAUDE.md) を参照。
+詳細は [CLAUDE.md](../../CLAUDE.md) を参照。
 
 ---
 
