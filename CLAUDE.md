@@ -103,6 +103,10 @@ docs/logs/YYYYMMDD-HHmmss.md
 ## プロジェクト構造
 
 ```
+docker-compose.yaml      # Docker構成（Ollama + SearXNG）
+searxng/
+└── settings.yml         # SearXNG設定
+
 docs/
 ├── plans/               # 実装計画
 │   └── YYYYMMDD-HHmmss-*.md
@@ -134,6 +138,21 @@ tests/
 ## コマンド
 
 ```bash
+# Docker環境
+docker compose up -d              # サービス起動
+docker compose down               # サービス停止
+docker compose ps                 # 状態確認
+
+# Ollama操作
+docker exec ollama ollama list              # モデル一覧
+docker exec ollama ollama pull <model>      # モデル取得
+docker exec ollama nvidia-smi               # GPU確認
+
+# ヘルスチェック
+curl http://localhost:11434/api/tags                      # Ollama API
+curl http://localhost:8080/healthz                        # SearXNG
+curl "http://localhost:8080/search?q=test&format=json"    # SearXNG JSON API
+
 # テスト実行
 pytest
 
@@ -146,3 +165,21 @@ ruff check src/
 # フォーマッター
 ruff format src/
 ```
+
+---
+
+## ドキュメントのメンテナンス
+
+### CLAUDE.md の更新ルール
+
+`git push` 後に以下を確認し、乖離があれば修正する：
+
+1. **プロジェクト構造**: 新規ファイル/ディレクトリが反映されているか
+2. **コマンド**: 新しい操作コマンドが追加されているか
+3. **TDD領域**: テスト方法の変更があれば更新
+
+### 更新タイミング
+
+- 新しいフェーズの実装完了時
+- プロジェクト構造に変更があった時
+- 開発フローに変更があった時
