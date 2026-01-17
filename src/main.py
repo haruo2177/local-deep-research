@@ -5,6 +5,9 @@ from __future__ import annotations
 import argparse
 import asyncio
 
+from src.llm import call_llm
+from src.nodes.planner import planner_node
+from src.prompts.templates import format_summarizer_prompt
 from src.tools.scrape import scrape
 from src.tools.search import search
 
@@ -51,6 +54,35 @@ async def demo_scrape(url: str) -> None:
         print(f"Failed: {result.error_message}")
 
 
+async def demo_plan(task: str) -> None:
+    """Run planner demo.
+
+    Args:
+        task: Research task to plan.
+    """
+    print(f"Planning research for: {task}")
+    print("-" * 40)
+    state = {"task": task}
+    result = await planner_node(state)
+    print("Generated search queries:")
+    for i, query in enumerate(result["plan"], 1):
+        print(f"  {i}. {query}")
+
+
+async def demo_summarize(text: str) -> None:
+    """Run summarization demo.
+
+    Args:
+        text: Text to summarize.
+    """
+    print("Summarizing text...")
+    print("-" * 40)
+    prompt = format_summarizer_prompt(text)
+    summary = await call_llm(prompt)
+    print("Summary:")
+    print(summary)
+
+
 def main() -> None:
     """Run the Deep Research agent."""
     parser = argparse.ArgumentParser(
@@ -58,13 +90,13 @@ def main() -> None:
     )
     parser.add_argument(
         "--demo",
-        choices=["search", "scrape"],
+        choices=["search", "scrape", "plan", "summarize"],
         help="Run in demo mode to test individual components",
     )
     parser.add_argument(
         "input",
         nargs="?",
-        help="Query (for search) or URL (for scrape)",
+        help="Query, URL, or text depending on demo mode",
     )
 
     args = parser.parse_args()
@@ -78,6 +110,10 @@ def main() -> None:
             asyncio.run(demo_search(args.input))
         elif args.demo == "scrape":
             asyncio.run(demo_scrape(args.input))
+        elif args.demo == "plan":
+            asyncio.run(demo_plan(args.input))
+        elif args.demo == "summarize":
+            asyncio.run(demo_summarize(args.input))
     else:
         # Full research mode (Phase 5)
         raise NotImplementedError("Full research not yet implemented. Use --demo mode.")

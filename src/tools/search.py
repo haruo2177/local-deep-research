@@ -65,9 +65,7 @@ async def search(
                 timeout=aiohttp.ClientTimeout(total=timeout),
             ) as response:
                 if response.status >= 400:
-                    raise SearchError(
-                        f"Search failed with status {response.status}"
-                    )
+                    raise SearchError(f"Search failed with status {response.status}")
 
                 try:
                     data = await response.json()

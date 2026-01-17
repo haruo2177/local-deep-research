@@ -120,9 +120,7 @@ class TestScrapeSuccess:
         mock_crawler: MagicMock,
     ) -> None:
         """Scrape should return ScrapeResult with markdown content."""
-        with patch(
-            "src.tools.scrape.AsyncWebCrawler", return_value=mock_crawler
-        ):
+        with patch("src.tools.scrape.AsyncWebCrawler", return_value=mock_crawler):
             result = await scrape("https://example.com")
 
             assert isinstance(result, ScrapeResult)
@@ -139,9 +137,7 @@ class TestScrapeSuccess:
         """Scrape should truncate content exceeding max_content_length."""
         mock_crawl_result_success.markdown.raw_markdown = "A" * 1000
 
-        with patch(
-            "src.tools.scrape.AsyncWebCrawler", return_value=mock_crawler
-        ):
+        with patch("src.tools.scrape.AsyncWebCrawler", return_value=mock_crawler):
             result = await scrape("https://example.com", max_content_length=100)
 
             # 100 chars + "\n\n[Content truncated]" (21 chars) = 121 chars
@@ -165,9 +161,7 @@ class TestScrapeErrorHandling:
         """Failed scrape should return ScrapeResult with success=False."""
         mock_crawler.arun = AsyncMock(return_value=mock_crawl_result_failure)
 
-        with patch(
-            "src.tools.scrape.AsyncWebCrawler", return_value=mock_crawler
-        ):
+        with patch("src.tools.scrape.AsyncWebCrawler", return_value=mock_crawler):
             result = await scrape("https://example.com/404")
 
             assert result.success is False
@@ -182,9 +176,7 @@ class TestScrapeErrorHandling:
         """Timeout should return ScrapeResult with success=False."""
         mock_crawler.arun = AsyncMock(side_effect=asyncio.TimeoutError())
 
-        with patch(
-            "src.tools.scrape.AsyncWebCrawler", return_value=mock_crawler
-        ):
+        with patch("src.tools.scrape.AsyncWebCrawler", return_value=mock_crawler):
             result = await scrape("https://example.com", timeout=1.0)
 
             assert result.success is False
@@ -198,9 +190,7 @@ class TestScrapeErrorHandling:
         """Unexpected exception should return ScrapeResult with success=False."""
         mock_crawler.arun = AsyncMock(side_effect=Exception("Unexpected error"))
 
-        with patch(
-            "src.tools.scrape.AsyncWebCrawler", return_value=mock_crawler
-        ):
+        with patch("src.tools.scrape.AsyncWebCrawler", return_value=mock_crawler):
             result = await scrape("https://example.com")
 
             assert result.success is False
@@ -228,9 +218,7 @@ class TestScrapeMultiple:
         mock_crawl_result_success: MagicMock,
     ) -> None:
         """Multiple URLs should be processed."""
-        with patch(
-            "src.tools.scrape.AsyncWebCrawler", return_value=mock_crawler
-        ):
+        with patch("src.tools.scrape.AsyncWebCrawler", return_value=mock_crawler):
             results = await scrape_multiple(
                 [
                     "https://example.com/1",
@@ -253,9 +241,7 @@ class TestScrapeMultiple:
             side_effect=[mock_crawl_result_failure, mock_crawl_result_success]
         )
 
-        with patch(
-            "src.tools.scrape.AsyncWebCrawler", return_value=mock_crawler
-        ):
+        with patch("src.tools.scrape.AsyncWebCrawler", return_value=mock_crawler):
             results = await scrape_multiple(
                 [
                     "https://example.com/fail",

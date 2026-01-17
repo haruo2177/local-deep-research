@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-PLANNER_PROMPT = """You are a research planner. Given a user query, generate a list of search queries to gather comprehensive information.
+PLANNER_PROMPT = """You are a research planner. Given a user query, generate search queries to gather comprehensive information.
 
 User Query: {task}
 
@@ -10,7 +10,11 @@ IMPORTANT: Your response must be ONLY a valid JSON object, no other text.
 The JSON must have this exact format:
 {{"queries": ["query1", "query2", ...]}}
 
-Generate 3-5 specific search queries that will help answer the user's question.
+Rules:
+- Generate 3-5 SHORT keyword-based search queries (2-5 words each)
+- Do NOT use question format
+- Use the SAME language as the user query
+- Example: "quantum computer basics", "qubit error correction"
 """
 
 SUMMARIZER_PROMPT = """Summarize the following content concisely in {max_length} words or less.
@@ -93,9 +97,7 @@ def format_reviewer_prompt(task: str, content: list[str]) -> str:
     return REVIEWER_PROMPT.format(task=task, content=content_text)
 
 
-def format_writer_prompt(
-    task: str, content: list[str], references: list[str]
-) -> str:
+def format_writer_prompt(task: str, content: list[str], references: list[str]) -> str:
     """Format the writer prompt for final report generation.
 
     Args:

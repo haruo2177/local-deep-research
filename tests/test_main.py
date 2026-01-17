@@ -15,8 +15,12 @@ class TestDemoMode:
     def test_demo_search_prints_results(self) -> None:
         """Demo search should print search results."""
         mock_results = [
-            AsyncMock(title="Result 1", url="https://example.com/1", snippet="Snippet 1"),
-            AsyncMock(title="Result 2", url="https://example.com/2", snippet="Snippet 2"),
+            AsyncMock(
+                title="Result 1", url="https://example.com/1", snippet="Snippet 1"
+            ),
+            AsyncMock(
+                title="Result 2", url="https://example.com/2", snippet="Snippet 2"
+            ),
         ]
 
         with (
@@ -40,7 +44,9 @@ class TestDemoMode:
         )
 
         with (
-            patch.object(sys, "argv", ["main", "--demo", "scrape", "https://example.com"]),
+            patch.object(
+                sys, "argv", ["main", "--demo", "scrape", "https://example.com"]
+            ),
             patch("src.main.scrape", new_callable=AsyncMock) as mock_scrape,
             patch("sys.stdout", new=StringIO()) as mock_stdout,
         ):
@@ -61,7 +67,9 @@ class TestDemoMode:
         )
 
         with (
-            patch.object(sys, "argv", ["main", "--demo", "scrape", "https://example.com"]),
+            patch.object(
+                sys, "argv", ["main", "--demo", "scrape", "https://example.com"]
+            ),
             patch("src.main.scrape", new_callable=AsyncMock) as mock_scrape,
             patch("sys.stdout", new=StringIO()) as mock_stdout,
         ):
@@ -81,3 +89,34 @@ class TestDemoMode:
             main()
             output = mock_stdout.getvalue()
             assert "Error" in output
+
+    def test_demo_plan_prints_queries(self) -> None:
+        """Demo plan should print generated search queries."""
+        with (
+            patch.object(sys, "argv", ["main", "--demo", "plan", "What is LangGraph?"]),
+            patch("src.main.planner_node", new_callable=AsyncMock) as mock_planner,
+            patch("sys.stdout", new=StringIO()) as mock_stdout,
+        ):
+            mock_planner.return_value = {
+                "plan": ["LangGraph documentation", "LangGraph tutorial"]
+            }
+            main()
+            output = mock_stdout.getvalue()
+
+        assert "LangGraph documentation" in output
+        assert "LangGraph tutorial" in output
+
+    def test_demo_summarize_prints_summary(self) -> None:
+        """Demo summarize should print LLM summary."""
+        with (
+            patch.object(
+                sys, "argv", ["main", "--demo", "summarize", "Long text here"]
+            ),
+            patch("src.main.call_llm", new_callable=AsyncMock) as mock_llm,
+            patch("sys.stdout", new=StringIO()) as mock_stdout,
+        ):
+            mock_llm.return_value = "This is a summary of the text."
+            main()
+            output = mock_stdout.getvalue()
+
+        assert "This is a summary" in output
