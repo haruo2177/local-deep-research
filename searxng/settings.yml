@@ -1,0 +1,113 @@
+# SearXNG Settings for Deep Research System
+# Documentation: https://docs.searxng.org/admin/settings/settings
+
+use_default_settings: true
+
+general:
+  debug: false
+  instance_name: "Local Deep Research"
+  privacypolicy_url: false
+  donation_url: false
+  contact_url: false
+  enable_metrics: false
+
+server:
+  secret_key: "change-this-to-a-random-string-for-security"
+  limiter: false
+  image_proxy: true
+  method: "GET"
+
+search:
+  formats:
+    - html
+    - json
+  safe_search: 0
+  default_lang: ""
+  autocomplete: "duckduckgo"
+  suspend_on_fail: true
+
+ui:
+  static_use_hash: true
+  default_theme: simple
+
+outgoing:
+  request_timeout: 6.0
+  max_request_timeout: 15.0
+  pool_connections: 100
+  pool_maxsize: 20
+  enable_http2: true
+
+engines:
+  # === Primary Search Engines ===
+  - name: google
+    engine: google
+    shortcut: g
+    disabled: false
+
+  - name: bing
+    engine: bing
+    shortcut: bi
+    disabled: false
+
+  - name: duckduckgo
+    engine: duckduckgo
+    shortcut: ddg
+    disabled: false
+
+  # === Encyclopedia ===
+  - name: wikipedia
+    engine: wikipedia
+    shortcut: wp
+    disabled: false
+
+  - name: wikidata
+    engine: wikidata
+    shortcut: wd
+    disabled: false
+
+  # === News ===
+  - name: google news
+    engine: google_news
+    shortcut: gn
+    disabled: false
+
+  - name: bing news
+    engine: bing_news
+    shortcut: bin
+    disabled: false
+
+  # === Academic & Research ===
+  - name: semantic scholar
+    engine: semantic_scholar
+    shortcut: se
+    disabled: false
+
+  - name: arxiv
+    engine: arxiv
+    shortcut: arx
+    disabled: false
+
+  # === Disabled Engines (not needed for text research) ===
+  - name: google images
+    disabled: true
+
+  - name: bing images
+    disabled: true
+
+  - name: youtube
+    disabled: true
+
+  - name: google videos
+    disabled: true
+
+  - name: google maps
+    disabled: true
+
+  - name: openstreetmap
+    disabled: true
+
+  - name: reddit
+    disabled: true
+
+  - name: piratebay
+    disabled: true
