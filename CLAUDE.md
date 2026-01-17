@@ -42,13 +42,13 @@
 
 ```bash
 # 全テストの実行
-pytest
+uv run pytest
 
 # 特定のテストファイルを実行
-pytest tests/test_state.py
+uv run pytest tests/test_state.py
 
 # カバレッジレポート付き
-pytest --cov=src --cov-report=html
+uv run pytest --cov=src --cov-report=html
 ```
 
 ### 確認手順のテンプレート（TDDが困難な場合）
@@ -103,6 +103,8 @@ docs/logs/YYYYMMDD-HHmmss.md
 ## プロジェクト構造
 
 ```
+pyproject.toml           # プロジェクト設定・依存関係
+.python-version          # Python バージョン (3.10)
 docker-compose.yaml      # Docker構成（Ollama + SearXNG）
 searxng/
 └── settings.yml         # SearXNG設定
@@ -138,6 +140,9 @@ tests/
 ## コマンド
 
 ```bash
+# 環境セットアップ
+uv sync                           # 依存関係インストール
+
 # Docker環境
 docker compose up -d              # サービス起動
 docker compose down               # サービス停止
@@ -154,16 +159,15 @@ curl http://localhost:8080/healthz                        # SearXNG
 curl "http://localhost:8080/search?q=test&format=json"    # SearXNG JSON API
 
 # テスト実行
-pytest
+uv run pytest                     # 全テスト
+uv run pytest --cov=src           # カバレッジ付き
 
 # 型チェック
-mypy src/
+uv run mypy src/
 
-# リンター
-ruff check src/
-
-# フォーマッター
-ruff format src/
+# リンター・フォーマッター
+uv run ruff check src/ tests/     # リンター
+uv run ruff format src/ tests/    # フォーマッター
 ```
 
 ---
