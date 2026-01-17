@@ -1,5 +1,7 @@
 # 実装ログ: [タイトル]
 
+**ファイル名**: `YYYYMMDD-HHmmss-description.md`（例: `20260118-143000-phase5-graph.md`）
+
 **日時**: YYYY-MM-DD HH:mm
 
 ## 目標

@@ -79,10 +79,10 @@ uv run pytest --cov=src --cov-report=html
 
 ### ファイル命名規則
 ```
-docs/logs/YYYYMMDD-HHmmss.md
+docs/logs/YYYYMMDD-HHmmss-description.md
 ```
 
-例: `docs/logs/20260117-143000.md`
+例: `docs/logs/20260117-143000-phase3-tools.md`
 
 ### ログの作成タイミング
 - **セッション開始時**: 新しいログファイルを作成し、目標を記載
@@ -111,10 +111,10 @@ searxng/
 
 docs/
 ├── plans/               # 実装計画
-│   └── YYYYMMDD-HHmmss-*.md
+│   └── YYYYMMDD-HHmmss-description.md
 └── logs/                # 実装ログ
     ├── TEMPLATE.md
-    └── YYYYMMDD-HHmmss.md
+    └── YYYYMMDD-HHmmss-description.md
 
 src/
 ├── __init__.py
