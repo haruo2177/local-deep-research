@@ -100,10 +100,10 @@ python src/main.py "調査したいテーマ"
 | Phase 1-2 | 環境構築・プロジェクト初期化 | ✅ 完了 |
 | Phase 3 | コアコンポーネント（config, state, tools, prompts） | ✅ 完了 |
 | Phase 4 | LangGraphノード（planner, researcher, scraper, reviewer, writer） | ✅ 完了 |
-| Phase 5 | グラフ構築・統合 | 📝 未実装 |
+| Phase 5 | グラフ構築・統合 | ✅ 完了 |
 | Phase 6-7 | 最適化・ドキュメント | ⏳ 未着手 |
 
-**テスト**: 116テストパス / カバレッジ 95%
+**テスト**: 137テストパス / カバレッジ 95%
 
 ### デモモード
 
