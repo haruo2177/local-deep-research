@@ -104,7 +104,7 @@ docs/logs/YYYYMMDD-HHmmss-description.md
 
 ```
 pyproject.toml           # プロジェクト設定・依存関係
-.python-version          # Python バージョン (3.10)
+.python-version          # Python バージョン (3.13)
 docker-compose.yaml      # Docker構成（Ollama + SearXNG）
 searxng/
 └── settings.yml         # SearXNG設定
@@ -154,6 +154,8 @@ tests/
 │   ├── test_search.py
 │   └── test_scrape.py
 └── integration/
+    ├── test_error_handling.py
+    └── test_workflow.py
 ```
 
 ## コマンド

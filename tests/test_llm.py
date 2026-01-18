@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -71,7 +70,7 @@ class TestCallLLM:
 
         with patch("src.llm.ChatOllama") as mock_chat:
             mock_instance = MagicMock()
-            mock_instance.ainvoke = AsyncMock(side_effect=asyncio.TimeoutError())
+            mock_instance.ainvoke = AsyncMock(side_effect=TimeoutError())
             mock_chat.return_value = mock_instance
 
             with pytest.raises(LLMError) as exc_info:

@@ -98,7 +98,7 @@ async def scrape(
                 success=True,
             )
 
-    except asyncio.TimeoutError:
+    except TimeoutError:
         return ScrapeResult(
             url=url,
             markdown="",

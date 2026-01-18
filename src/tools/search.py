@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from dataclasses import dataclass
 
 import aiohttp
@@ -85,7 +84,7 @@ async def search(
 
                 return results
 
-    except asyncio.TimeoutError as e:
+    except TimeoutError as e:
         raise SearchError(f"Search timeout after {timeout}s") from e
     except aiohttp.ClientConnectionError as e:
         raise SearchError(f"Connection error: {e}") from e

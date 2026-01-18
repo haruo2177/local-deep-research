@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-
 from langchain_ollama import ChatOllama
 
 from src.config import settings
@@ -43,7 +41,7 @@ async def call_llm(
     try:
         response = await llm.ainvoke(prompt)
         return str(response.content)
-    except asyncio.TimeoutError as e:
+    except TimeoutError as e:
         raise LLMError(f"LLM call timeout: {e}") from e
     except ConnectionError as e:
         raise LLMError(f"LLM connection error: {e}") from e

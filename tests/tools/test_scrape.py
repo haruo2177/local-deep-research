@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -174,7 +173,7 @@ class TestScrapeErrorHandling:
         mock_crawler: MagicMock,
     ) -> None:
         """Timeout should return ScrapeResult with success=False."""
-        mock_crawler.arun = AsyncMock(side_effect=asyncio.TimeoutError())
+        mock_crawler.arun = AsyncMock(side_effect=TimeoutError())
 
         with patch("src.tools.scrape.AsyncWebCrawler", return_value=mock_crawler):
             result = await scrape("https://example.com", timeout=1.0)

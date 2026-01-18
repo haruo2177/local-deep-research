@@ -32,7 +32,8 @@ flowchart TD
 ### ソフトウェア
 - Docker & Docker Compose
 - NVIDIA Container Toolkit
-- Python 3.11+
+- Python 3.13+
+- [uv](https://docs.astral.sh/uv/)（推奨）
 
 ## セットアップ
 
@@ -52,39 +53,132 @@ docker compose up -d
 ### 3. モデルのダウンロード
 
 ```bash
-# Plannerモデル
+# Plannerモデル（4.7GB）
 docker exec ollama ollama pull deepseek-r1:7b
 
-# Workerモデル
+# Workerモデル（1.9GB）
 docker exec ollama ollama pull qwen2.5:3b
 ```
 
 ### 4. Python環境のセットアップ
 
 ```bash
-# 依存関係のインストール
-pip install -r requirements.txt
-
-# または uv を使用
+# uv を使用（推奨）
 uv sync
+
+# または pip を使用
+pip install -e .
 ```
 
-### 5. 実行
+### 5. 動作確認
 
 ```bash
-python src/main.py "調査したいテーマ"
+# Ollamaヘルスチェック
+curl http://localhost:11434/api/tags
+
+# SearXNGヘルスチェック
+curl http://localhost:8080/healthz
+
+# GPU認識確認
+docker exec ollama nvidia-smi
+```
+
+## 使い方
+
+### フル研究実行
+
+```bash
+# 基本的な使い方
+uv run python -m src.main "調査したいテーマ"
+
+# ファイル出力付き
+uv run python -m src.main --output report.md "調査したいテーマ"
+
+# 例
+uv run python -m src.main "量子コンピュータの最新動向"
+uv run python -m src.main -o quantum_report.md "量子コンピュータの最新動向"
+```
+
+### デモモード
+
+個別コンポーネントの動作確認に使用できます：
+
+```bash
+# 検索テスト（SearXNG）
+uv run python -m src.main --demo search "Python programming"
+
+# スクレイピングテスト（Crawl4AI）
+uv run python -m src.main --demo scrape "https://example.com"
+
+# プランナーテスト（検索クエリ生成）
+uv run python -m src.main --demo plan "量子コンピュータとは何か"
+
+# 要約テスト（LLM要約）
+uv run python -m src.main --demo summarize "要約したいテキスト..."
 ```
 
 ## 設定
 
-### Ollama環境変数
+### 環境変数
 
-以下の環境変数がdocker-compose.yamlで設定されています：
+以下の環境変数でカスタマイズが可能です：
+
+| 変数 | デフォルト値 | 説明 |
+|------|-------------|------|
+| `OLLAMA_URL` | `http://localhost:11434` | OllamaのAPIエンドポイント |
+| `SEARXNG_URL` | `http://localhost:8080` | SearXNGのAPIエンドポイント |
+| `PLANNER_MODEL` | `deepseek-r1:7b` | 計画・執筆に使用するモデル |
+| `WORKER_MODEL` | `qwen2.5:3b` | 要約・評価に使用するモデル |
+| `MAX_CONTEXT_LENGTH` | `4096` | 最大コンテキスト長 |
+| `MAX_ITERATIONS` | `5` | 最大調査イテレーション数 |
+
+### Docker環境変数（docker-compose.yaml）
 
 | 変数 | 値 | 説明 |
 |------|-----|------|
 | `OLLAMA_FLASH_ATTENTION` | `1` | Flash Attentionを有効化しメモリ効率を向上 |
 | `OLLAMA_KEEP_ALIVE` | `24h` | モデルをメモリに保持する時間 |
+
+### 設定例
+
+```bash
+# 別のモデルを使用する場合
+export PLANNER_MODEL="qwen2.5:7b"
+export WORKER_MODEL="phi3:mini"
+
+# イテレーション数を増やす場合
+export MAX_ITERATIONS=10
+
+uv run python -m src.main "調査テーマ"
+```
+
+## 開発
+
+### テストの実行
+
+```bash
+# 全テスト実行
+uv run pytest
+
+# カバレッジ付き
+uv run pytest --cov=src --cov-report=html
+
+# 特定のテストファイル
+uv run pytest tests/test_graph.py
+```
+
+### コード品質
+
+```bash
+# 型チェック
+uv run mypy src/
+
+# リンター
+uv run ruff check src/ tests/
+
+# フォーマッター
+uv run ruff format src/ tests/
+```
 
 ## 使用技術
 
@@ -101,27 +195,18 @@ python src/main.py "調査したいテーマ"
 | Phase 3 | コアコンポーネント（config, state, tools, prompts） | ✅ 完了 |
 | Phase 4 | LangGraphノード（planner, researcher, scraper, reviewer, writer） | ✅ 完了 |
 | Phase 5 | グラフ構築・統合 | ✅ 完了 |
-| Phase 6-7 | 最適化・ドキュメント | ⏳ 未着手 |
+| Phase 6 | 最適化・品質保証 | ✅ 完了 |
+| Phase 7 | ドキュメント | ✅ 完了 |
 
-**テスト**: 137テストパス / カバレッジ 95%
+**テスト**: 147テストパス / カバレッジ 95%
 
-### デモモード
+## パフォーマンス
 
-現在、個別コンポーネントのテストが可能です：
+GTX 1660 SUPER（6GB VRAM）での計測結果：
 
-```bash
-# 検索テスト
-uv run python -m src.main --demo search "Python programming"
-
-# スクレイピングテスト
-uv run python -m src.main --demo scrape "https://example.com"
-
-# プランナーテスト（検索クエリ生成）
-uv run python -m src.main --demo plan "量子コンピュータとは何か"
-
-# 要約テスト
-uv run python -m src.main --demo summarize "長いテキスト..."
-```
+- **VRAM使用量**: 3,941 MiB / 6,144 MiB（64%）
+- **GPU使用率**: 推論中99%
+- **安定性**: 長時間の調査でも安定動作
 
 ## ライセンス
 

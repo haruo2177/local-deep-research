@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import asyncio
-
 import aiohttp
 import pytest
 from aioresponses import aioresponses
@@ -230,7 +228,7 @@ class TestSearchErrorHandling:
         with aioresponses() as mocked:
             mocked.get(
                 "http://localhost:8080/search?q=test&format=json",
-                exception=asyncio.TimeoutError(),
+                exception=TimeoutError(),
             )
 
             with pytest.raises(SearchError, match="[Tt]imeout"):
