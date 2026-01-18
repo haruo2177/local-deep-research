@@ -192,6 +192,65 @@ class TestScraperNode:
             result = await scraper_node(state)
 
             assert result["content"] == []
+            assert result["scraped_urls"] == []
+
+    async def test_scraper_returns_scraped_urls(self) -> None:
+        """scraper_node should return list of scraped URLs."""
+        from src.nodes.scraper import scraper_node
+
+        with (
+            patch("src.nodes.scraper.scrape_multiple") as mock_scrape,
+            patch("src.nodes.scraper.call_llm") as mock_llm,
+        ):
+            mock_scrape.return_value = [
+                ScrapeResult(
+                    url="https://example.com/1",
+                    markdown="Content",
+                    success=True,
+                )
+            ]
+            mock_llm.return_value = "Summary"
+            state = {
+                "references": ["https://example.com/1"],
+                "current_search_query": "test",
+            }
+
+            result = await scraper_node(state)
+
+            assert "scraped_urls" in result
+            assert "https://example.com/1" in result["scraped_urls"]
+
+    async def test_scraper_skips_already_scraped_urls(self) -> None:
+        """scraper_node should skip URLs that have already been scraped."""
+        from src.nodes.scraper import scraper_node
+
+        with (
+            patch("src.nodes.scraper.scrape_multiple") as mock_scrape,
+            patch("src.nodes.scraper.call_llm") as mock_llm,
+        ):
+            mock_scrape.return_value = [
+                ScrapeResult(
+                    url="https://example.com/new",
+                    markdown="New content",
+                    success=True,
+                )
+            ]
+            mock_llm.return_value = "Summary"
+            state = {
+                "references": [
+                    "https://example.com/already-scraped",
+                    "https://example.com/new",
+                ],
+                "scraped_urls": ["https://example.com/already-scraped"],
+                "current_search_query": "test",
+            }
+
+            result = await scraper_node(state)
+
+            # Only the new URL should be scraped
+            mock_scrape.assert_called_once_with(["https://example.com/new"])
+            assert len(result["content"]) == 1
+            assert "https://example.com/new" in result["scraped_urls"]
 
     async def test_scraper_includes_source_in_summary(self) -> None:
         """scraper_node should include source URL in summary."""

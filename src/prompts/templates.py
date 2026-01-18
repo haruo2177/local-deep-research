@@ -13,7 +13,6 @@ The JSON must have this exact format:
 Rules:
 - Generate 3-5 SHORT keyword-based search queries (2-5 words each)
 - Do NOT use question format
-- Use the SAME language as the user query
 - Example: "quantum computer basics", "qubit error correction"
 """
 

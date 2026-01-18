@@ -16,7 +16,9 @@ class ResearchState(TypedDict):
         content: Accumulated summaries from scraped pages (uses Annotated for appending).
         current_search_query: The query being processed in the current iteration.
         references: List of source URLs for citations.
+        scraped_urls: List of URLs that have already been scraped (to avoid duplicates).
         is_sufficient: Flag indicating if gathered information is sufficient.
+        report: The final generated research report.
     """
 
     task: str
@@ -25,4 +27,6 @@ class ResearchState(TypedDict):
     content: Annotated[list[str], operator.add]
     current_search_query: str
     references: Annotated[list[str], operator.add]
+    scraped_urls: Annotated[list[str], operator.add]
     is_sufficient: bool
+    report: str

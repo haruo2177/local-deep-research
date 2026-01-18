@@ -118,13 +118,22 @@ docs/
 
 src/
 ├── __init__.py
-├── main.py
-├── config.py
-├── state.py
-├── graph.py
+├── main.py              # CLIエントリーポイント
+├── config.py            # 設定管理
+├── state.py             # ResearchState TypedDict
+├── graph.py             # LangGraphワークフロー定義
+├── llm.py               # LLMユーティリティ
 ├── nodes/
+│   ├── planner.py       # 計画ノード
+│   ├── researcher.py    # 調査ノード
+│   ├── scraper.py       # スクレイピング・要約ノード
+│   ├── reviewer.py      # 評価ノード
+│   └── writer.py        # 執筆ノード
 ├── tools/
+│   ├── search.py        # SearXNG連携
+│   └── scrape.py        # Crawl4AI連携
 └── prompts/
+    └── templates.py     # プロンプトテンプレート
 
 tests/
 ├── __init__.py
@@ -132,8 +141,18 @@ tests/
 ├── test_state.py
 ├── test_config.py
 ├── test_graph.py
+├── test_llm.py
+├── test_main.py
+├── test_prompts.py
 ├── nodes/
+│   ├── test_planner.py
+│   ├── test_researcher.py
+│   ├── test_scraper.py
+│   ├── test_reviewer.py
+│   └── test_writer.py
 ├── tools/
+│   ├── test_search.py
+│   └── test_scrape.py
 └── integration/
 ```
 
@@ -159,6 +178,12 @@ docker exec ollama nvidia-smi               # GPU確認
 curl http://localhost:11434/api/tags                      # Ollama API
 curl http://localhost:8080/healthz                        # SearXNG
 curl "http://localhost:8080/search?q=test&format=json"    # SearXNG JSON API
+
+# 研究実行
+uv run python -m src.main "リサーチトピック"              # フル研究実行
+uv run python -m src.main --output report.md "トピック"   # ファイル出力付き
+uv run python -m src.main --demo search "クエリ"          # 検索デモ
+uv run python -m src.main --demo plan "タスク"            # 計画デモ
 
 # テスト実行
 uv run pytest                     # 全テスト

@@ -21,9 +21,9 @@
 | 3.4 | プロンプトテンプレート | ✅ 完了（13テスト） |
 | 3.5 | デモモード | ✅ 完了（6テスト） |
 | 4.x | LangGraphノード | ✅ 完了（51テスト） |
-| 5.x | グラフ構築 | 📝 スタブ作成済み |
+| 5.x | グラフ構築 | ✅ 完了（18テスト） |
 
-**テスト**: 116テストパス / カバレッジ 95%
+**テスト**: 134テストパス / カバレッジ 95%
 
 ---
 
@@ -283,46 +283,44 @@ local-deep-research/
 
 ---
 
-## フェーズ5: グラフの構築と統合 📝 スタブ作成済み
+## フェーズ5: グラフの構築と統合 ✅ 完了
 
-> **TDD適用**: 可能
+> **TDD適用**: 完全適用
 > **方針**: グラフ構造のテスト + モックノードを使用した統合テスト
-> **現状**: `graph.py` と `main.py` のスタブファイル作成済み
+> **テスト**: 18テスト（graph: 14, main追加: 4）
 
-### 5.1 グラフ定義 (`graph.py`)
+### 5.1 グラフ定義 (`graph.py`) ✅ 完了
 
-**テストファースト**: `tests/test_graph.py`を先に作成
-- テスト: グラフにすべてのノードが登録されている
-- テスト: エッジが正しく定義されている
-- テスト: 条件分岐が正しく動作する（モックノード使用）
-- [ ] StateGraphの初期化
-- [ ] 各ノードの追加
-- [ ] エッジ（遷移）の定義
+**テストファースト**: `tests/test_graph.py`（14テスト）
+- [x] StateGraphの初期化
+- [x] 各ノードの追加（planner, researcher, scraper, reviewer, writer）
+- [x] エッジ（遷移）の定義
   - START → Planner
   - Planner → Researcher
   - Researcher → Scraper
   - Scraper → Reviewer
   - Reviewer → Researcher（ループ）または Writer
   - Writer → END
-- [ ] 条件付きエッジの実装（Reviewer判定による分岐）
+- [x] 条件付きエッジの実装（Reviewer判定による分岐）
 
-### 5.2 グラフのコンパイルと実行
-- [ ] グラフのコンパイル
-- [ ] 入力・出力インターフェースの定義
+### 5.2 グラフのコンパイルと実行 ✅ 完了
+- [x] グラフのコンパイル
+- [x] 入力・出力インターフェースの定義
 
-### 5.3 エントリーポイント (`main.py`)
+### 5.3 エントリーポイント (`main.py`) ✅ 完了
 
-**テストファースト**: `tests/test_main.py`を先に作成
-- テスト: CLI引数のパース
-- テスト: 出力フォーマット
-- [ ] CLIインターフェースの実装
-- [ ] 非同期実行のセットアップ
-- [ ] 結果の出力（Markdown形式）
+**テストファースト**: `tests/test_main.py`（4テスト追加）
+- [x] `run_research()` 関数の実装
+- [x] CLIインターフェースの実装
+- [x] 非同期実行のセットアップ
+- [x] 結果の出力（Markdown形式）
+- [x] `--output` フラグによるファイル出力
 
 **成果物**:
-- 完成したLangGraphワークフロー
-- 実行可能なCLIアプリケーション
-- グラフ構造のテスト
+- ✅ 完成したLangGraphワークフロー
+- ✅ 実行可能なCLIアプリケーション
+- ✅ グラフ構造のテスト（14テスト）
+- ✅ フル実行モードのテスト（4テスト）
 
 ---
 
@@ -425,15 +423,28 @@ OLLAMA_KEEP_ALIVE=24h
 ~~5. `llm.py` の TDD 実装~~ ✅ 完了
 ~~6. 各ノード（`nodes/*.py`）の TDD 実装~~ ✅ 完了
 
-**現在の次のステップ（フェーズ5）:**
-1. `graph.py` の TDD 実装（StateGraph構築）
-2. ノード間のエッジ定義
-3. `should_continue_research` による条件付きルーティング
-4. 統合テストの作成
-5. `main.py` のフル実行モード実装
+**フェーズ5 完了:**
+~~1. `graph.py` の TDD 実装（StateGraph構築）~~ ✅ 完了
+~~2. ノード間のエッジ定義~~ ✅ 完了
+~~3. `should_continue_research` による条件付きルーティング~~ ✅ 完了
+~~4. 統合テストの作成~~ ✅ 完了
+~~5. `main.py` のフル実行モード実装~~ ✅ 完了
 
-**デモモードで動作確認可能:**
+**現在の次のステップ（フェーズ6）:**
+1. Docker環境での実際のエンドツーエンドテスト
+2. VRAM使用量の計測と最適化
+3. エラーハンドリングの強化
+4. 統合テストスイートの拡充
+
+**実行コマンド:**
 ```bash
+# フル研究実行
+uv run python -m src.main "リサーチトピック"
+
+# ファイル出力付き
+uv run python -m src.main --output report.md "リサーチトピック"
+
+# デモモード
 uv run python -m src.main --demo search "Python programming"
 uv run python -m src.main --demo scrape "https://example.com"
 uv run python -m src.main --demo plan "量子コンピュータとは何か"

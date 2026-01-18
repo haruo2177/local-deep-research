@@ -9,6 +9,8 @@ from src.config import settings
 from src.llm import call_llm
 from src.prompts.templates import format_reviewer_prompt
 
+MIN_ITERATIONS = 2
+
 
 async def reviewer_node(state: dict[str, Any]) -> dict[str, Any]:
     """Evaluate if gathered information is sufficient.
@@ -25,6 +27,10 @@ async def reviewer_node(state: dict[str, Any]) -> dict[str, Any]:
 
     if steps_completed >= settings.max_iterations:
         return {"is_sufficient": True}
+
+    # Require minimum iterations before allowing "sufficient"
+    if steps_completed < MIN_ITERATIONS:
+        return {"is_sufficient": False}
 
     prompt = format_reviewer_prompt(task, content)
     response = await call_llm(prompt, model=settings.worker_model)

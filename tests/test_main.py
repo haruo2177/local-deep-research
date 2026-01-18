@@ -120,3 +120,84 @@ class TestDemoMode:
             output = mock_stdout.getvalue()
 
         assert "This is a summary" in output
+
+
+class TestFullResearchMode:
+    """Tests for full research execution mode."""
+
+    def test_run_research_calls_graph(self) -> None:
+        """Full research mode should call the graph with correct initial state."""
+        from src.main import run_research
+
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.return_value = {"report": "Research Report"}
+
+        with patch("src.main.build_graph", return_value=mock_graph):
+            import asyncio
+
+            result = asyncio.run(run_research("Test topic"))
+
+        mock_graph.ainvoke.assert_called_once()
+        call_args = mock_graph.ainvoke.call_args[0][0]
+        assert call_args["task"] == "Test topic"
+        assert call_args["plan"] == []
+        assert call_args["steps_completed"] == 0
+        assert call_args["content"] == []
+        assert call_args["references"] == []
+        assert call_args["scraped_urls"] == []
+        assert call_args["is_sufficient"] is False
+        assert call_args["report"] == ""
+        assert result == "Research Report"
+
+    def test_main_without_demo_runs_research(self) -> None:
+        """Running without --demo should execute full research mode."""
+        with (
+            patch.object(sys, "argv", ["main", "What is AI?"]),
+            patch("src.main.run_research", new_callable=AsyncMock) as mock_run,
+            patch("sys.stdout", new=StringIO()) as mock_stdout,
+        ):
+            mock_run.return_value = "# AI Research Report\n\nAI is..."
+            main()
+            output = mock_stdout.getvalue()
+
+        mock_run.assert_called_once_with("What is AI?")
+        assert "AI Research Report" in output
+
+    def test_output_flag_saves_to_file(self) -> None:
+        """--output flag should save report to file."""
+        import os
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            output_path = os.path.join(tmpdir, "report.md")
+
+            with (
+                patch.object(
+                    sys, "argv", ["main", "--output", output_path, "Test topic"]
+                ),
+                patch("src.main.run_research", new_callable=AsyncMock) as mock_run,
+                patch("sys.stdout", new=StringIO()),
+            ):
+                mock_run.return_value = "# Test Report\n\nContent here."
+                main()
+
+            # Verify file was written
+            assert os.path.exists(output_path)
+            with open(output_path, encoding="utf-8") as f:
+                content = f.read()
+            assert "# Test Report" in content
+            assert "Content here." in content
+
+    def test_run_research_returns_empty_on_no_report(self) -> None:
+        """run_research should return empty string if no report in result."""
+        from src.main import run_research
+
+        mock_graph = AsyncMock()
+        mock_graph.ainvoke.return_value = {"task": "test"}
+
+        with patch("src.main.build_graph", return_value=mock_graph):
+            import asyncio
+
+            result = asyncio.run(run_research("Test topic"))
+
+        assert result == ""

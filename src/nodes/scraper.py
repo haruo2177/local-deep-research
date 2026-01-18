@@ -19,17 +19,24 @@ async def scraper_node(state: dict[str, Any]) -> dict[str, Any]:
         state: The current research state containing references.
 
     Returns:
-        A dict with content (list of summaries with source URLs).
+        A dict with content (list of summaries with source URLs) and scraped_urls.
     """
     references = state.get("references", [])
+    scraped_urls = set(state.get("scraped_urls", []))
 
-    if not references:
-        return {"content": []}
+    # Filter out already scraped URLs
+    urls_to_scrape = [url for url in references if url not in scraped_urls]
 
-    scrape_results = await scrape_multiple(references)
+    if not urls_to_scrape:
+        return {"content": [], "scraped_urls": []}
+
+    scrape_results = await scrape_multiple(urls_to_scrape)
 
     summaries = []
+    newly_scraped = []
     for result in scrape_results:
+        newly_scraped.append(result.url)
+
         if not result.success or not result.markdown:
             continue
 
@@ -43,4 +50,4 @@ async def scraper_node(state: dict[str, Any]) -> dict[str, Any]:
         summary_with_source = f"{summary}\n\nSource: {result.url}"
         summaries.append(summary_with_source)
 
-    return {"content": summaries}
+    return {"content": summaries, "scraped_urls": newly_scraped}

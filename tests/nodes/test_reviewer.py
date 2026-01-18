@@ -17,7 +17,7 @@ class TestReviewerNode:
             state = {
                 "task": "Test task",
                 "content": ["Some content"],
-                "steps_completed": 1,
+                "steps_completed": 2,  # Must meet MIN_ITERATIONS
             }
 
             result = await reviewer_node(state)
@@ -36,7 +36,7 @@ class TestReviewerNode:
             state = {
                 "task": "Test task",
                 "content": ["Comprehensive content here"],
-                "steps_completed": 1,
+                "steps_completed": 2,  # Must meet MIN_ITERATIONS
             }
 
             result = await reviewer_node(state)
@@ -52,12 +52,29 @@ class TestReviewerNode:
             state = {
                 "task": "Test task",
                 "content": ["Partial content"],
-                "steps_completed": 1,
+                "steps_completed": 2,  # Must meet MIN_ITERATIONS
             }
 
             result = await reviewer_node(state)
 
             assert result["is_sufficient"] is False
+
+    async def test_reviewer_forces_false_below_min_iterations(self) -> None:
+        """reviewer_node should return is_sufficient=False if below MIN_ITERATIONS."""
+        from src.nodes.reviewer import MIN_ITERATIONS, reviewer_node
+
+        with patch("src.nodes.reviewer.call_llm") as mock_llm:
+            # LLM should NOT be called when below MIN_ITERATIONS
+            state = {
+                "task": "Test task",
+                "content": ["Content"],
+                "steps_completed": MIN_ITERATIONS - 1,
+            }
+
+            result = await reviewer_node(state)
+
+            assert result["is_sufficient"] is False
+            mock_llm.assert_not_called()
 
     async def test_reviewer_max_iterations_forces_true(self) -> None:
         """reviewer_node should force is_sufficient=True at max iterations."""
@@ -87,7 +104,7 @@ class TestReviewerNode:
             state = {
                 "task": "Test task",
                 "content": ["Content"],
-                "steps_completed": 1,
+                "steps_completed": 2,  # Must meet MIN_ITERATIONS
             }
 
             result = await reviewer_node(state)
@@ -103,7 +120,7 @@ class TestReviewerNode:
             state = {
                 "task": "Test task",
                 "content": ["Content"],
-                "steps_completed": 1,
+                "steps_completed": 2,  # Must meet MIN_ITERATIONS
             }
 
             result = await reviewer_node(state)
@@ -120,7 +137,7 @@ class TestReviewerNode:
             state = {
                 "task": "Test task",
                 "content": ["Content"],
-                "steps_completed": 1,
+                "steps_completed": 2,  # Must meet MIN_ITERATIONS
             }
 
             await reviewer_node(state)
