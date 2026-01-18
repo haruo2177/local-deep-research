@@ -456,7 +456,7 @@ OLLAMA_KEEP_ALIVE=24h
 
 **実行コマンド:**
 ```bash
-# フル研究実行
+# Deep Research実行
 uv run python -m src.main "リサーチトピック"
 
 # ファイル出力付き

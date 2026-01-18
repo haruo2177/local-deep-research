@@ -40,7 +40,7 @@ flowchart TD
 ### 1. リポジトリのクローン
 
 ```bash
-git clone https://github.com/yaguharu/local-deep-research.git
+git clone https://github.com/haruo2177/local-deep-research.git
 cd local-deep-research
 ```
 
@@ -85,7 +85,7 @@ docker exec ollama nvidia-smi
 
 ## 使い方
 
-### フル研究実行
+### Deep Research実行
 
 ```bash
 # 基本的な使い方

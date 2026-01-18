@@ -11,7 +11,7 @@
 | [tests/test_graph.py](../../tests/test_graph.py) | 新規作成 | グラフ構造のTDDテスト |
 | [src/graph.py](../../src/graph.py) | 修正 | StateGraphとエッジの実装 |
 | [tests/test_main.py](../../tests/test_main.py) | 修正 | フル実行モードのテスト追加 |
-| [src/main.py](../../src/main.py) | 修正 | フル研究実行モードの実装 |
+| [src/main.py](../../src/main.py) | 修正 | Deep Research実行モードの実装 |
 
 ## 実装手順（TDDアプローチ）
 
@@ -109,7 +109,7 @@ async def run_research(task: str) -> str:
 ```
 
 CLI対応:
-- `uv run python -m src.main "リサーチトピック"` - フル研究モード
+- `uv run python -m src.main "リサーチトピック"` - Deep Researchモード
 - `uv run python -m src.main --output report.md "リサーチトピック"` - ファイル出力
 
 ### ステップ5: main.py のテスト追加
@@ -171,7 +171,7 @@ START
    # Dockerサービスが起動していることを確認
    docker compose up -d
 
-   # フル研究の実行
+   # Deep Researchの実行
    uv run python -m src.main "LangGraphとは何か、どのように動作するか"
    ```
 

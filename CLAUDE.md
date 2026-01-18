@@ -182,7 +182,7 @@ curl http://localhost:8080/healthz                        # SearXNG
 curl "http://localhost:8080/search?q=test&format=json"    # SearXNG JSON API
 
 # 研究実行
-uv run python -m src.main "リサーチトピック"              # フル研究実行
+uv run python -m src.main "リサーチトピック"              # Deep Research実行
 uv run python -m src.main --output report.md "トピック"   # ファイル出力付き
 uv run python -m src.main --demo search "クエリ"          # 検索デモ
 uv run python -m src.main --demo plan "タスク"            # 計画デモ
