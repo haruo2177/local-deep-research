@@ -75,3 +75,44 @@ class TestConfigValidation:
 
         settings = Settings()
         assert settings.max_iterations > 0
+
+
+class TestTranslationConfig:
+    """Test translation configuration settings."""
+
+    def test_default_enable_translation(self) -> None:
+        """Translation should be enabled by default."""
+        from src.config import Settings
+
+        settings = Settings()
+        assert settings.enable_translation is True
+
+    def test_default_translation_device_is_auto(self) -> None:
+        """Translation device should default to auto (GPU if available)."""
+        from src.config import Settings
+
+        settings = Settings()
+        # Default is "auto", which resolves to "cuda" or "cpu"
+        assert settings.translation_device in ("cuda", "cpu")
+
+    def test_enable_translation_from_env(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Config should read ENABLE_TRANSLATION from environment."""
+        monkeypatch.setenv("ENABLE_TRANSLATION", "false")
+
+        from src.config import Settings
+
+        settings = Settings()
+        assert settings.enable_translation is False
+
+    def test_translation_device_from_env(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Config should read TRANSLATION_DEVICE from environment."""
+        monkeypatch.setenv("TRANSLATION_DEVICE", "cuda")
+
+        from src.config import Settings
+
+        settings = Settings()
+        assert settings.translation_device == "cuda"

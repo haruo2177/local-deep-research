@@ -97,3 +97,37 @@ class TestResearchStateCreation:
         state: ResearchState = sample_research_state  # type: ignore
         assert state["task"] == "What is LangGraph?"
         assert len(state["plan"]) == 3
+
+
+class TestResearchStateTranslationFields:
+    """Test ResearchState translation-related fields."""
+
+    def test_state_has_source_language_field(self) -> None:
+        """ResearchState should have a 'source_language' field."""
+        from src.state import ResearchState
+
+        assert "source_language" in ResearchState.__annotations__
+
+    def test_state_has_original_task_field(self) -> None:
+        """ResearchState should have an 'original_task' field."""
+        from src.state import ResearchState
+
+        assert "original_task" in ResearchState.__annotations__
+
+    def test_source_language_is_string(self) -> None:
+        """source_language field should be a string type."""
+        import typing
+
+        from src.state import ResearchState
+
+        hints = typing.get_type_hints(ResearchState)
+        assert hints["source_language"] is str
+
+    def test_original_task_is_string(self) -> None:
+        """original_task field should be a string type."""
+        import typing
+
+        from src.state import ResearchState
+
+        hints = typing.get_type_hints(ResearchState)
+        assert hints["original_task"] is str

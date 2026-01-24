@@ -10,7 +10,7 @@ class ResearchState(TypedDict):
     """State schema for the Deep Research LangGraph workflow.
 
     Attributes:
-        task: The original user query/research question.
+        task: The original user query/research question (may be translated to English).
         plan: List of search queries derived from the task.
         steps_completed: Number of research iterations completed.
         content: Accumulated summaries from scraped pages (uses Annotated for appending).
@@ -19,6 +19,8 @@ class ResearchState(TypedDict):
         scraped_urls: List of URLs that have already been scraped (to avoid duplicates).
         is_sufficient: Flag indicating if gathered information is sufficient.
         report: The final generated research report.
+        source_language: ISO 639-1 language code of the original task (e.g., "ja", "en").
+        original_task: The original user query before translation.
     """
 
     task: str
@@ -30,3 +32,5 @@ class ResearchState(TypedDict):
     scraped_urls: Annotated[list[str], operator.add]
     is_sufficient: bool
     report: str
+    source_language: str
+    original_task: str

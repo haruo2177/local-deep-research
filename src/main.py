@@ -5,12 +5,19 @@ from __future__ import annotations
 import argparse
 import asyncio
 
+from src.config import settings
 from src.graph import build_graph
 from src.llm import call_llm
 from src.nodes.planner import planner_node
 from src.prompts.templates import format_summarizer_prompt
 from src.tools.scrape import scrape
 from src.tools.search import search
+from src.tools.translate import (
+    detect_language,
+    normalize_language_code,
+    translate_from_english,
+    translate_to_english,
+)
 
 
 async def run_research(task: str) -> str:
@@ -34,6 +41,8 @@ async def run_research(task: str) -> str:
         "scraped_urls": [],
         "is_sufficient": False,
         "report": "",
+        "source_language": "",
+        "original_task": "",
     }
 
     result = await graph.ainvoke(initial_state)
@@ -112,6 +121,39 @@ async def demo_summarize(text: str) -> None:
     print(summary)
 
 
+def demo_translate(text: str) -> None:
+    """Run translation demo.
+
+    Args:
+        text: Text to translate.
+    """
+    print(f"Device: {settings.translation_device}")
+    print("-" * 40)
+
+    # Detect language
+    source_lang = detect_language(text)
+    normalized = normalize_language_code(source_lang)
+    print(f"Input: {text}")
+    print(f"Detected language: {source_lang} (normalized: {normalized})")
+    print("-" * 40)
+
+    if normalized == "en":
+        # English to Japanese demo
+        print("Translating English -> Japanese...")
+        result = translate_from_english(text, "ja")
+        print(f"Result: {result.translated_text}")
+    else:
+        # Non-English to English
+        print(f"Translating {source_lang} -> English...")
+        result = translate_to_english(text, source_lang)
+        print(f"Result: {result.translated_text}")
+
+        # Then back to original
+        print(f"\nTranslating English -> {source_lang}...")
+        back = translate_from_english(result.translated_text, normalized)
+        print(f"Result: {back.translated_text}")
+
+
 def main() -> None:
     """Run the Deep Research agent."""
     parser = argparse.ArgumentParser(
@@ -119,7 +161,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--demo",
-        choices=["search", "scrape", "plan", "summarize"],
+        choices=["search", "scrape", "plan", "summarize", "translate"],
         help="Run in demo mode to test individual components",
     )
     parser.add_argument(
@@ -149,6 +191,8 @@ def main() -> None:
             asyncio.run(demo_plan(args.input))
         elif args.demo == "summarize":
             asyncio.run(demo_summarize(args.input))
+        elif args.demo == "translate":
+            demo_translate(args.input)
     else:
         # Full research mode
         if not args.input:

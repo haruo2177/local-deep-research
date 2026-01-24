@@ -22,15 +22,35 @@ class TestBuildGraph:
         assert hasattr(graph, "ainvoke")
 
     def test_graph_has_all_nodes(self) -> None:
-        """Graph should have all 5 nodes registered."""
+        """Graph should have all 7 nodes registered (including translators)."""
         graph = build_graph()
         # Get the underlying graph structure
         nodes = graph.get_graph().nodes
         node_names = set(nodes.keys())
 
-        expected_nodes = {"planner", "researcher", "scraper", "reviewer", "writer"}
+        expected_nodes = {
+            "planner",
+            "translator_input",
+            "researcher",
+            "scraper",
+            "reviewer",
+            "writer",
+            "translator_output",
+        }
         # __start__ and __end__ are automatically added
         assert expected_nodes.issubset(node_names)
+
+    def test_graph_has_translator_input_node(self) -> None:
+        """Graph should have translator_input node."""
+        graph = build_graph()
+        nodes = graph.get_graph().nodes
+        assert "translator_input" in nodes
+
+    def test_graph_has_translator_output_node(self) -> None:
+        """Graph should have translator_output node."""
+        graph = build_graph()
+        nodes = graph.get_graph().nodes
+        assert "translator_output" in nodes
 
     def test_graph_has_start_and_end(self) -> None:
         """Graph should have START and END nodes."""
@@ -55,14 +75,23 @@ class TestGraphEdges:
         assert len(start_edges) == 1
         assert start_edges[0][1] == "planner"
 
-    def test_planner_to_researcher_edge(self) -> None:
-        """Planner should connect to researcher."""
+    def test_planner_to_translator_input_edge(self) -> None:
+        """Planner should connect to translator_input."""
         graph = build_graph()
         edges = graph.get_graph().edges
 
         planner_edges = [e for e in edges if e[0] == "planner"]
         assert len(planner_edges) == 1
-        assert planner_edges[0][1] == "researcher"
+        assert planner_edges[0][1] == "translator_input"
+
+    def test_translator_input_to_researcher_edge(self) -> None:
+        """translator_input should connect to researcher."""
+        graph = build_graph()
+        edges = graph.get_graph().edges
+
+        translator_input_edges = [e for e in edges if e[0] == "translator_input"]
+        assert len(translator_input_edges) == 1
+        assert translator_input_edges[0][1] == "researcher"
 
     def test_researcher_to_scraper_edge(self) -> None:
         """Researcher should connect to scraper."""
@@ -93,14 +122,23 @@ class TestGraphEdges:
         assert "researcher" in targets
         assert "writer" in targets
 
-    def test_writer_to_end_edge(self) -> None:
-        """Writer should connect to END."""
+    def test_writer_to_translator_output_edge(self) -> None:
+        """Writer should connect to translator_output."""
         graph = build_graph()
         edges = graph.get_graph().edges
 
         writer_edges = [e for e in edges if e[0] == "writer"]
         assert len(writer_edges) == 1
-        assert writer_edges[0][1] == "__end__"
+        assert writer_edges[0][1] == "translator_output"
+
+    def test_translator_output_to_end_edge(self) -> None:
+        """translator_output should connect to END."""
+        graph = build_graph()
+        edges = graph.get_graph().edges
+
+        translator_output_edges = [e for e in edges if e[0] == "translator_output"]
+        assert len(translator_output_edges) == 1
+        assert translator_output_edges[0][1] == "__end__"
 
 
 class TestShouldContinueResearch:

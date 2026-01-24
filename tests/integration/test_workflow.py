@@ -173,12 +173,20 @@ class TestWorkflowEdgeCases:
             patch("src.nodes.planner.call_llm", new_callable=AsyncMock) as mock_planner,
             patch("src.nodes.researcher.search", new_callable=AsyncMock) as mock_search,
             patch(
+                "src.nodes.scraper.scrape_multiple", new_callable=AsyncMock
+            ) as mock_scrape,
+            patch(
+                "src.nodes.scraper.call_llm", new_callable=AsyncMock
+            ) as mock_scraper_llm,
+            patch(
                 "src.nodes.reviewer.call_llm", new_callable=AsyncMock
             ) as mock_reviewer,
             patch("src.nodes.writer.call_llm", new_callable=AsyncMock) as mock_writer,
         ):
             mock_planner.return_value = '{"queries": ["q1", "q2"]}'
             mock_search.return_value = search_results
+            mock_scrape.return_value = []
+            mock_scraper_llm.return_value = "Summary of content"
             mock_reviewer.return_value = '{"sufficient": true}'
             mock_writer.return_value = "# Report"
 
