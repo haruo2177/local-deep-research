@@ -34,8 +34,8 @@ def mock_config(mock_ollama_url: str, mock_searxng_url: str) -> dict[str, str]:
     return {
         "ollama_url": mock_ollama_url,
         "searxng_url": mock_searxng_url,
-        "planner_model": "deepseek-r1:7b",
-        "worker_model": "qwen2.5:3b",
+        "planner_model": "qwen3:8b",
+        "worker_model": "gemma3:4b",
         "max_context_length": "4096",
     }
 

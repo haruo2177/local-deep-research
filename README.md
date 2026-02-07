@@ -8,18 +8,18 @@ LangGraphによるグラフベースのワークフロー、Ollamaによるロ�
 
 - **完全ローカル動作**: クラウドAPIに依存せず、プライバシーを保護
 - **低VRAM対応**: 6GB VRAMで動作するよう最適化
-- **ハイブリッドモデル戦略**: 推論モデル（DeepSeek R1 7B）と作業モデル（Qwen 2.5 3B）を使い分け
+- **ハイブリッドモデル戦略**: 推論モデル（Qwen3 8B）と作業モデル（Gemma3 4B）を使い分け
 - **自律的な調査**: 検索計画の立案から最終レポート作成まで自動化
 
 ## アーキテクチャ
 
 ```mermaid
 flowchart TD
-    A[Planner<br/>DeepSeek R1 7B] -->|調査計画| B[Researcher<br/>SearXNG]
-    B -->|検索結果| C[Scraper & Summarizer<br/>Crawl4AI + Qwen 2.5 3B]
+    A[Planner<br/>Qwen3 8B] -->|調査計画| B[Researcher<br/>SearXNG]
+    B -->|検索結果| C[Scraper & Summarizer<br/>Crawl4AI + Gemma3 4B]
     C -->|要約済み情報| D{Reviewer}
     D -->|情報不足| B
-    D -->|情報充足| E[Writer<br/>DeepSeek R1 7B]
+    D -->|情報充足| E[Writer<br/>Qwen3 8B]
     E -->|最終レポート| F((完了))
 ```
 
@@ -57,11 +57,11 @@ docker compose -f docker-compose.yaml -f docker-compose.gpu.yaml up -d
 ### 3. モデルのダウンロード
 
 ```bash
-# Plannerモデル（4.7GB）
-docker exec ollama ollama pull deepseek-r1:7b
+# Plannerモデル
+docker exec ollama ollama pull qwen3:8b
 
-# Workerモデル（1.9GB）
-docker exec ollama ollama pull qwen2.5:3b
+# Workerモデル
+docker exec ollama ollama pull gemma3:4b
 ```
 
 ### 4. Python環境のセットアップ
@@ -133,8 +133,8 @@ uv run python -m src.main --demo summarize "要約したいテキスト..."
 |------|-------------|------|
 | `OLLAMA_URL` | `http://localhost:11434` | OllamaのAPIエンドポイント |
 | `SEARXNG_URL` | `http://localhost:8080` | SearXNGのAPIエンドポイント |
-| `PLANNER_MODEL` | `deepseek-r1:7b` | 計画に使用するモデル |
-| `WORKER_MODEL` | `qwen2.5:3b` | 要約・評価に使用するモデル |
+| `PLANNER_MODEL` | `qwen3:8b` | 計画に使用するモデル |
+| `WORKER_MODEL` | `gemma3:4b` | 要約・評価に使用するモデル |
 | `WRITER_MODEL` | `PLANNER_MODEL`と同一 | 執筆に使用するモデル |
 | `MAX_CONTEXT_LENGTH` | `4096` | 最大コンテキスト長 |
 | `MAX_ITERATIONS` | `5` | 最大調査イテレーション数 |
@@ -170,7 +170,7 @@ uv run python -m src.main "調査テーマ"
 # WRITER_MODEL未設定（PLANNER_MODELにフォールバック）
 unset WRITER_MODEL
 uv run python -c "from src.config import settings; print(f'writer_model: {settings.writer_model}')"
-# 出力: writer_model: deepseek-r1:7b
+# 出力: writer_model: qwen3:8b
 
 # WRITER_MODEL設定時
 export WRITER_MODEL="llama3:8b"

@@ -27,14 +27,14 @@ class TestConfigDefaults:
         from src.config import Settings
 
         settings = Settings()
-        assert settings.planner_model == "deepseek-r1:7b"
+        assert settings.planner_model == "qwen3:8b"
 
     def test_default_worker_model(self) -> None:
         """Config should have a default worker model."""
         from src.config import Settings
 
         settings = Settings()
-        assert settings.worker_model == "qwen2.5:3b"
+        assert settings.worker_model == "gemma3:4b"
 
 
 class TestConfigFromEnvironment:

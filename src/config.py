@@ -39,8 +39,8 @@ class Settings:
         """Load settings from environment variables."""
         self.ollama_url = os.getenv("OLLAMA_URL", "http://localhost:11434")
         self.searxng_url = os.getenv("SEARXNG_URL", "http://localhost:8080")
-        self.planner_model = os.getenv("PLANNER_MODEL", "deepseek-r1:7b")
-        self.worker_model = os.getenv("WORKER_MODEL", "qwen2.5:3b")
+        self.planner_model = os.getenv("PLANNER_MODEL", "qwen3:8b")
+        self.worker_model = os.getenv("WORKER_MODEL", "gemma3:4b")
         self._writer_model = os.getenv("WRITER_MODEL", "")
         self.max_context_length = int(os.getenv("MAX_CONTEXT_LENGTH", "4096"))
         self.max_iterations = int(os.getenv("MAX_ITERATIONS", "5"))
