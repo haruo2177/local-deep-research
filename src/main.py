@@ -12,21 +12,7 @@ from pathlib import Path
 
 import aiohttp
 
-from src.config import settings
-from src.graph import build_graph
-from src.llm import call_llm
 from src.logging_utils import preview_text
-from src.nodes.planner import planner_node
-from src.prompts.templates import format_summarizer_prompt
-from src.state import TimingEvent
-from src.tools.scrape import scrape
-from src.tools.search import search
-from src.tools.translate import (
-    detect_language,
-    normalize_language_code,
-    translate_from_english,
-    translate_to_english,
-)
 
 logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
@@ -48,6 +34,57 @@ DEFAULT_FLOW_ORDER = (
 
 class DependencyError(Exception):
     """Raised when required local services are unavailable."""
+
+
+def _get_settings():
+    """Lazily load global settings to avoid expensive imports at process startup."""
+    from src.config import settings
+
+    return settings
+
+
+def build_graph():
+    """Compatibility wrapper for lazy import."""
+    from src.graph import build_graph as _build_graph
+
+    return _build_graph()
+
+
+async def call_llm(
+    prompt: str,
+    model: str | None = None,
+    temperature: float = 0.7,
+) -> str:
+    """Compatibility wrapper for lazy import."""
+    from src.llm import call_llm as _call_llm
+
+    return await _call_llm(prompt, model=model, temperature=temperature)
+
+
+async def planner_node(state: dict[str, object]) -> dict[str, object]:
+    """Compatibility wrapper for lazy import."""
+    from src.nodes.planner import planner_node as _planner_node
+
+    return await _planner_node(state)
+
+
+async def search(
+    query: str,
+    *,
+    num_results: int = 10,
+    timeout: float = 10.0,
+):
+    """Compatibility wrapper for lazy import."""
+    from src.tools.search import search as _search
+
+    return await _search(query, num_results=num_results, timeout=timeout)
+
+
+async def scrape(url: str):
+    """Compatibility wrapper for lazy import."""
+    from src.tools.scrape import scrape as _scrape
+
+    return await _scrape(url)
 
 
 def _is_nvidia_runtime_error(message: str) -> bool:
@@ -204,6 +241,7 @@ async def _check_service_with_retries(
 
 def _required_ollama_models() -> list[str]:
     """Return required Ollama model names in stable order without duplicates."""
+    settings = _get_settings()
     ordered_models = [
         settings.planner_model,
         settings.worker_model,
@@ -282,6 +320,7 @@ async def _check_required_ollama_models(*, ollama_base: str) -> None:
 
 async def validate_runtime_dependencies() -> None:
     """Validate required local services before running full research."""
+    settings = _get_settings()
     ollama_base = settings.ollama_url.rstrip("/")
     searxng_base = settings.searxng_url.rstrip("/")
     logger.info("Validating runtime dependencies")
@@ -350,7 +389,7 @@ async def run_research(task: str) -> str:
     return report
 
 
-def _log_flow_timing_summary(events: list[TimingEvent]) -> None:
+def _log_flow_timing_summary(events: list[dict[str, object]]) -> None:
     """Log per-flow timing summary aggregated across the whole run."""
     if not events:
         logger.info("Flow timings summary: no events captured")
@@ -465,6 +504,8 @@ async def demo_summarize(text: str) -> None:
     """
     print("Summarizing text...")
     print("-" * 40)
+    from src.prompts.templates import format_summarizer_prompt
+
     prompt = format_summarizer_prompt(text)
     summary = await call_llm(prompt)
     print("Summary:")
@@ -477,6 +518,14 @@ def demo_translate(text: str) -> None:
     Args:
         text: Text to translate.
     """
+    from src.tools.translate import (
+        detect_language,
+        normalize_language_code,
+        translate_from_english,
+        translate_to_english,
+    )
+
+    settings = _get_settings()
     print(f"Device: {settings.translation_device}")
     print("-" * 40)
 
