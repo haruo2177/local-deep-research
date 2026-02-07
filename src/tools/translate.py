@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 
 from langdetect import detect
 from langdetect.lang_detect_exception import LangDetectException
+import re
 
 if TYPE_CHECKING:
     from transformers import MarianMTModel, MarianTokenizer
@@ -186,6 +187,7 @@ def translate_from_english(text: str, target_language: str) -> TranslationResult
     translated_text = str(
         tokenizer.decode(translated[0], skip_special_tokens=True)  # type: ignore[no-untyped-call]
     )
+    translated_text = _postprocess_translation(translated_text, normalized_lang)
 
     return TranslationResult(
         original_text=text,
@@ -193,3 +195,20 @@ def translate_from_english(text: str, target_language: str) -> TranslationResult
         source_language="en",
         target_language=target_language,
     )
+
+
+def _postprocess_translation(text: str, target_language: str) -> str:
+    """Clean up tokenizer spacing artifacts for CJK languages."""
+    if target_language not in {"ja", "zh", "ko"}:
+        return text
+
+    # Remove spaces between CJK characters and CJK punctuation
+    cjk = r"\u3040-\u30ff\u3400-\u4dbf\u4e00-\u9fff"
+    punct = r"\u3000-\u303f\uff01-\uff60"
+    text = re.sub(rf"(?<=[{cjk}{punct}])\s+(?=[{cjk}{punct}])", "", text)
+    # Also remove spaces around common ASCII punctuation when adjacent to CJK.
+    text = re.sub(rf"(?<=[{cjk}])\s+([,.:;!?])", r"\1", text)
+    text = re.sub(rf"([,.:;!?])\s+(?=[{cjk}])", r"\1", text)
+
+    # Collapse multiple spaces that might remain (e.g., between Latin words)
+    return re.sub(r"\s{2,}", " ", text).strip()

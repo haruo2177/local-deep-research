@@ -28,6 +28,7 @@ class Settings:
     searxng_url: str = field(default="")
     planner_model: str = field(default="")
     worker_model: str = field(default="")
+    _writer_model: str = field(default="")
     max_context_length: int = field(default=4096)
     max_iterations: int = field(default=5)
     # Translation settings
@@ -40,6 +41,7 @@ class Settings:
         self.searxng_url = os.getenv("SEARXNG_URL", "http://localhost:8080")
         self.planner_model = os.getenv("PLANNER_MODEL", "deepseek-r1:7b")
         self.worker_model = os.getenv("WORKER_MODEL", "qwen2.5:3b")
+        self._writer_model = os.getenv("WRITER_MODEL", "")
         self.max_context_length = int(os.getenv("MAX_CONTEXT_LENGTH", "4096"))
         self.max_iterations = int(os.getenv("MAX_ITERATIONS", "5"))
         # Translation settings
@@ -51,6 +53,11 @@ class Settings:
         self.translation_device = (
             _detect_device() if device_setting == "auto" else device_setting
         )
+
+    @property
+    def writer_model(self) -> str:
+        """Return writer model, falling back to planner_model if not set."""
+        return self._writer_model if self._writer_model else self.planner_model
 
 
 # Global settings instance

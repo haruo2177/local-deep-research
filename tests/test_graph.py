@@ -230,6 +230,10 @@ class TestGraphExecution:
             "scraped_urls": [],
             "is_sufficient": False,
             "report": "",
+            "empty_cycles": 0,
+            "empty_cycle_streak": 0,
+            "source_language": "en",
+            "original_task": "Test research task",
         }
 
         result = await compiled.ainvoke(initial_state)
@@ -307,6 +311,10 @@ class TestGraphExecution:
             "scraped_urls": [],
             "is_sufficient": False,
             "report": "",
+            "empty_cycles": 0,
+            "empty_cycle_streak": 0,
+            "source_language": "en",
+            "original_task": "Test research task",
         }
 
         result = await compiled.ainvoke(initial_state)

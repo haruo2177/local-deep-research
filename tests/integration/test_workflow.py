@@ -24,6 +24,10 @@ def initial_state() -> dict[str, Any]:
         "is_sufficient": False,
         "report": "",
         "scraped_urls": [],
+        "empty_cycles": 0,
+        "empty_cycle_streak": 0,
+        "source_language": "en",
+        "original_task": "Test research topic",
     }
 
 
@@ -100,6 +104,7 @@ class TestFullWorkflow:
             result = await graph.ainvoke(initial_state)
 
             # Steps: 0->1->2 (MIN_ITER), call1->3, call2->4, call3 (sufficient)
+            # Plan未枯渇のまま終了するため空回りは発生せず
             assert result["steps_completed"] == 4
 
     @pytest.mark.asyncio
@@ -127,8 +132,8 @@ class TestFullWorkflow:
             graph = build_graph()
             result = await graph.ainvoke(initial_state)
 
-            # Should stop at max_iterations
-            assert result["steps_completed"] <= 5
+            # Should stop at max_iterations (3) but may include empty cycles
+            assert result["steps_completed"] <= 6
 
 
 class TestWorkflowEdgeCases:

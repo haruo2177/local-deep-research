@@ -28,8 +28,8 @@ class TestWriterNode:
             assert isinstance(result["report"], str)
             assert len(result["report"]) > 0
 
-    async def test_writer_uses_planner_model(self) -> None:
-        """writer_node should use planner_model for high-quality output."""
+    async def test_writer_uses_writer_model(self) -> None:
+        """writer_node should use writer_model for high-quality output."""
         from src.config import settings
         from src.nodes.writer import writer_node
 
@@ -44,7 +44,7 @@ class TestWriterNode:
             await writer_node(state)
 
             call_kwargs = mock_llm.call_args[1]
-            assert call_kwargs["model"] == settings.planner_model
+            assert call_kwargs["model"] == settings.writer_model
 
     async def test_writer_includes_all_content(self) -> None:
         """writer_node should pass all content to the LLM."""

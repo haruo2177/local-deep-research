@@ -27,6 +27,10 @@ def initial_state() -> dict[str, Any]:
         "is_sufficient": False,
         "report": "",
         "scraped_urls": [],
+        "empty_cycles": 0,
+        "empty_cycle_streak": 0,
+        "source_language": "en",
+        "original_task": "Test research topic",
     }
 
 

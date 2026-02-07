@@ -56,6 +56,12 @@ def empty_research_state() -> dict[str, object]:
         "current_search_query": "",
         "references": [],
         "is_sufficient": False,
+        "scraped_urls": [],
+        "empty_cycles": 0,
+        "empty_cycle_streak": 0,
+        "report": "",
+        "source_language": "en",
+        "original_task": "",
     }
 
 
@@ -76,6 +82,12 @@ def sample_research_state() -> dict[str, object]:
         "current_search_query": "LangGraph tutorials",
         "references": ["https://docs.langchain.com/langgraph"],
         "is_sufficient": False,
+        "scraped_urls": [],
+        "empty_cycles": 0,
+        "empty_cycle_streak": 0,
+        "report": "",
+        "source_language": "en",
+        "original_task": "What is LangGraph?",
     }
 
 

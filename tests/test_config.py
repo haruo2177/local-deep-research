@@ -116,3 +116,48 @@ class TestTranslationConfig:
 
         settings = Settings()
         assert settings.translation_device == "cuda"
+
+
+class TestWriterModelConfig:
+    """Test writer_model configuration settings."""
+
+    def test_default_writer_model_equals_planner_model(self) -> None:
+        """writer_model should default to planner_model when not set."""
+        from src.config import Settings
+
+        settings = Settings()
+        assert settings.writer_model == settings.planner_model
+
+    def test_writer_model_from_env(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        """Config should read WRITER_MODEL from environment."""
+        monkeypatch.setenv("WRITER_MODEL", "llama3:8b")
+
+        from src.config import Settings
+
+        settings = Settings()
+        assert settings.writer_model == "llama3:8b"
+
+    def test_writer_model_overrides_planner_model(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """WRITER_MODEL should override the default planner_model fallback."""
+        monkeypatch.setenv("PLANNER_MODEL", "deepseek-r1:7b")
+        monkeypatch.setenv("WRITER_MODEL", "qwen2.5:7b")
+
+        from src.config import Settings
+
+        settings = Settings()
+        assert settings.planner_model == "deepseek-r1:7b"
+        assert settings.writer_model == "qwen2.5:7b"
+
+    def test_writer_model_falls_back_when_empty(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """writer_model should fall back to planner_model when set to empty."""
+        monkeypatch.setenv("PLANNER_MODEL", "custom-planner:7b")
+        monkeypatch.setenv("WRITER_MODEL", "")
+
+        from src.config import Settings
+
+        settings = Settings()
+        assert settings.writer_model == "custom-planner:7b"

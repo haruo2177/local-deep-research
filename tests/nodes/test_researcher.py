@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from unittest.mock import patch
 
 from src.tools.search import SearchResult
@@ -160,3 +161,50 @@ class TestResearcherNode:
             result = await researcher_node(state)
 
             assert result["current_search_query"] == "second query"
+
+    async def test_researcher_advances_when_plan_exhausted(self, caplog) -> None:
+        """Planを使い切っても進捗を+1し、空回りログを残す。"""
+        from src.nodes.researcher import researcher_node
+
+        state = {
+            "plan": ["done"],
+            "steps_completed": 1,
+            "references": [],
+            "empty_cycles": 0,
+            "empty_cycle_streak": 0,
+        }
+
+        with caplog.at_level(logging.INFO):
+            result = await researcher_node(state)
+
+        assert result["steps_completed"] == 2
+        assert result["references"] == []
+        assert result["current_search_query"] == ""
+        assert result["empty_cycles"] == 1
+        assert result["empty_cycle_streak"] == 1
+
+        log = next((record for record in caplog.records if "Empty cycle" in record.message), None)
+        assert log is not None
+        assert "empty=1" in log.message
+        assert "ratio=50.00%" in log.message
+        assert "streak=1" in log.message
+
+    async def test_researcher_resets_empty_streak_on_success(self) -> None:
+        """通常の検索が走ると空回り連続カウントをリセットする。"""
+        from src.nodes.researcher import researcher_node
+
+        with patch("src.nodes.researcher.search") as mock_search:
+            mock_search.return_value = []
+            state = {
+                "plan": ["query"],
+                "steps_completed": 0,
+                "references": [],
+                "empty_cycles": 3,
+                "empty_cycle_streak": 2,
+            }
+
+            result = await researcher_node(state)
+
+        assert result["steps_completed"] == 1
+        assert result["empty_cycles"] == 3
+        assert result["empty_cycle_streak"] == 0

@@ -44,7 +44,7 @@ git clone https://github.com/haruo2177/local-deep-research.git
 cd local-deep-research
 ```
 
-### 2. Docker環境の起動
+### 2. Docker環境の起動（初回モデル準備時）
 
 ```bash
 docker compose up -d
@@ -87,6 +87,8 @@ docker exec ollama nvidia-smi
 
 ### Deep Research実行
 
+`src.main` のフル実行モードでは、`ollama` と `searxng` を自動起動し、調査完了後に自動停止します。
+
 ```bash
 # 基本的な使い方
 uv run python -m src.main "調査したいテーマ"
@@ -127,8 +129,9 @@ uv run python -m src.main --demo summarize "要約したいテキスト..."
 |------|-------------|------|
 | `OLLAMA_URL` | `http://localhost:11434` | OllamaのAPIエンドポイント |
 | `SEARXNG_URL` | `http://localhost:8080` | SearXNGのAPIエンドポイント |
-| `PLANNER_MODEL` | `deepseek-r1:7b` | 計画・執筆に使用するモデル |
+| `PLANNER_MODEL` | `deepseek-r1:7b` | 計画に使用するモデル |
 | `WORKER_MODEL` | `qwen2.5:3b` | 要約・評価に使用するモデル |
+| `WRITER_MODEL` | `PLANNER_MODEL`と同一 | 執筆に使用するモデル |
 | `MAX_CONTEXT_LENGTH` | `4096` | 最大コンテキスト長 |
 | `MAX_ITERATIONS` | `5` | 最大調査イテレーション数 |
 
@@ -146,10 +149,29 @@ uv run python -m src.main --demo summarize "要約したいテキスト..."
 export PLANNER_MODEL="qwen2.5:7b"
 export WORKER_MODEL="phi3:mini"
 
+# 執筆に別のモデルを使用する場合（未設定時はPLANNER_MODELと同一）
+export WRITER_MODEL="llama3:8b"
+
 # イテレーション数を増やす場合
 export MAX_ITERATIONS=10
 
 uv run python -m src.main "調査テーマ"
+```
+
+### 動作確認
+
+環境変数が正しく反映されているか確認するには：
+
+```bash
+# WRITER_MODEL未設定（PLANNER_MODELにフォールバック）
+unset WRITER_MODEL
+uv run python -c "from src.config import settings; print(f'writer_model: {settings.writer_model}')"
+# 出力: writer_model: deepseek-r1:7b
+
+# WRITER_MODEL設定時
+export WRITER_MODEL="llama3:8b"
+uv run python -c "from src.config import settings; print(f'writer_model: {settings.writer_model}')"
+# 出力: writer_model: llama3:8b
 ```
 
 ## 開発

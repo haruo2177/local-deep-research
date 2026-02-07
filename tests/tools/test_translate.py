@@ -103,6 +103,15 @@ class TestTranslateFromEnglish:
         assert result.target_language == "ja"
         assert len(result.translated_text) > 0
 
+    def test_cjk_spacing_is_collapsed(self) -> None:
+        """CJK翻訳後の不要なスペースを除去する。"""
+        from src.tools.translate import _postprocess_translation
+
+        spaced = "彼 ら は 争い を 起 す とき , 人々 に は 偽り の 幻 が あ り"
+        cleaned = _postprocess_translation(spaced, "ja")
+        assert " " not in cleaned
+        assert cleaned.startswith("彼らは争いを起すとき")
+
     def test_english_passthrough(self) -> None:
         """Should return same text for English target."""
         from src.tools.translate import translate_from_english

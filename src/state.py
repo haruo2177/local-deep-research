@@ -21,6 +21,8 @@ class ResearchState(TypedDict):
         report: The final generated research report.
         source_language: ISO 639-1 language code of the original task (e.g., "ja", "en").
         original_task: The original user query before translation.
+        empty_cycles: Total count of cycles where the plan was already exhausted.
+        empty_cycle_streak: Current streak length of consecutive empty cycles.
     """
 
     task: str
@@ -34,3 +36,5 @@ class ResearchState(TypedDict):
     report: str
     source_language: str
     original_task: str
+    empty_cycles: int
+    empty_cycle_streak: int

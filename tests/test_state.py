@@ -42,6 +42,13 @@ class TestResearchStateFields:
 
         assert "references" in ResearchState.__annotations__
 
+    def test_state_has_empty_cycle_fields(self) -> None:
+        """ResearchState should track empty cycle counts and streak."""
+        from src.state import ResearchState
+
+        assert "empty_cycles" in ResearchState.__annotations__
+        assert "empty_cycle_streak" in ResearchState.__annotations__
+
     def test_state_has_is_sufficient_field(self) -> None:
         """ResearchState should have an 'is_sufficient' field."""
         from src.state import ResearchState
