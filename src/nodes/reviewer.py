@@ -8,6 +8,7 @@ from typing import Any
 
 from src.config import settings
 from src.llm import call_llm
+from src.logging_utils import preview_text
 from src.prompts.templates import format_reviewer_prompt
 
 MIN_ITERATIONS = 2
@@ -49,6 +50,7 @@ async def reviewer_node(state: dict[str, Any]) -> dict[str, Any]:
 
     prompt = format_reviewer_prompt(task, content)
     response = await call_llm(prompt, model=settings.worker_model)
+    logger.info("Reviewer response preview=%s", preview_text(response))
 
     try:
         data = json.loads(response)

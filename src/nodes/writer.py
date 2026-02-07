@@ -7,6 +7,7 @@ from typing import Any
 
 from src.config import settings
 from src.llm import LLMError, call_llm
+from src.logging_utils import preview_text
 from src.prompts.templates import format_writer_prompt
 
 
@@ -48,4 +49,5 @@ async def writer_node(state: dict[str, Any]) -> dict[str, Any]:
         raise WriterError(f"LLM call failed: {e}") from e
 
     logger.info("Writer end report_chars=%s", len(report))
+    logger.info("Writer report preview=%s", preview_text(report))
     return {"report": report}

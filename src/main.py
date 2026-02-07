@@ -14,6 +14,7 @@ import aiohttp
 from src.config import settings
 from src.graph import build_graph
 from src.llm import call_llm
+from src.logging_utils import preview_text
 from src.nodes.planner import planner_node
 from src.prompts.templates import format_summarizer_prompt
 from src.tools.scrape import scrape
@@ -321,7 +322,17 @@ async def run_research(task: str) -> str:
     result = await graph.ainvoke(initial_state)
     report: str = result.get("report", "")
     steps = result.get("steps_completed", 0)
+    source_language = result.get("source_language", "")
+    translated_task = result.get("task", "")
+    original_task = result.get("original_task", "")
     elapsed = time.perf_counter() - start_time
+    logger.info(
+        "Research context source_language=%s original_task=%s translated_task=%s",
+        source_language,
+        preview_text(str(original_task), max_chars=120),
+        preview_text(str(translated_task), max_chars=120),
+    )
+    logger.info("Research final report preview=%s", preview_text(report))
     logger.info("Research end task=%s steps=%s elapsed=%.2fs", task, steps, elapsed)
     return report
 

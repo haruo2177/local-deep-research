@@ -8,6 +8,7 @@ from typing import Any
 
 from src.config import settings
 from src.llm import LLMError, call_llm
+from src.logging_utils import preview_text
 from src.prompts.templates import format_planner_prompt
 
 MAX_RETRIES = 3
@@ -43,6 +44,7 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
         try:
             logger.info("Planner LLM call attempt=%s/%s", attempt + 1, MAX_RETRIES)
             response = await call_llm(prompt, model=settings.planner_model)
+            logger.info("Planner response preview=%s", preview_text(response))
             queries = _parse_queries(response)
 
             if not queries:
@@ -50,6 +52,7 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
                 logger.info("Planner produced empty queries; fallback to task")
 
             logger.info("Planner end queries=%s", len(queries))
+            logger.info("Planner queries=%s", " | ".join(preview_text(q, max_chars=80) for q in queries))
             return {"plan": queries}
 
         except LLMError as e:

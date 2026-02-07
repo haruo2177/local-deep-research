@@ -7,6 +7,7 @@ from typing import Any
 
 from src.config import settings
 from src.llm import call_llm
+from src.logging_utils import preview_text
 from src.prompts.templates import format_summarizer_prompt
 from src.tools.scrape import scrape_multiple
 
@@ -52,6 +53,7 @@ async def scraper_node(state: dict[str, Any]) -> dict[str, Any]:
 
         prompt = format_summarizer_prompt(content_to_summarize)
         summary = await call_llm(prompt, model=settings.worker_model)
+        logger.info("Scraper summary preview=%s", preview_text(summary))
 
         summary_with_source = f"{summary}\n\nSource: {result.url}"
         summaries.append(summary_with_source)

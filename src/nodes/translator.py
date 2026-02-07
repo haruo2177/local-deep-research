@@ -6,6 +6,7 @@ import logging
 from typing import Any
 
 from src.config import settings
+from src.logging_utils import preview_text
 from src.tools.translate import (
     TranslationError,
     detect_language,
@@ -36,6 +37,7 @@ async def translator_input_node(state: dict[str, Any]) -> dict[str, Any]:
     task = state.get("task", "")
     original_task = task
     logger.info("Translator input start")
+    logger.info("Translator input task preview=%s", preview_text(task))
 
     if not settings.enable_translation:
         logger.info("Translator input skip translation disabled")
@@ -68,6 +70,10 @@ async def translator_input_node(state: dict[str, Any]) -> dict[str, Any]:
         result = translate_to_english(task, source_language)
         translated_task = result.translated_text
         logger.info("Translator input translated %s -> en", source_language)
+        logger.info(
+            "Translator input translated preview=%s",
+            preview_text(translated_task),
+        )
     except TranslationError:
         # Keep original task if translation fails
         translated_task = task
@@ -95,6 +101,7 @@ async def translator_output_node(state: dict[str, Any]) -> dict[str, Any]:
 
     source_language = state.get("source_language", "en")
     report = state.get("report", "")
+    logger.info("Translator output source report preview=%s", preview_text(report))
 
     # Normalize language code
     normalized_lang = normalize_language_code(source_language)
@@ -108,6 +115,10 @@ async def translator_output_node(state: dict[str, Any]) -> dict[str, Any]:
     try:
         result = translate_from_english(report, source_language)
         logger.info("Translator output translated en -> %s", source_language)
+        logger.info(
+            "Translator output translated preview=%s",
+            preview_text(result.translated_text),
+        )
         return {"report": result.translated_text}
     except TranslationError:
         # Keep English report if translation fails
