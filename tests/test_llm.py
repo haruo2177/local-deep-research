@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -93,6 +94,32 @@ class TestCallLLM:
                 await call_llm("Test prompt")
 
             assert "connection" in str(exc_info.value).lower()
+
+    async def test_call_llm_logs_progress_while_waiting(
+        self, caplog: pytest.LogCaptureFixture
+    ) -> None:
+        """call_llm should emit progress logs for long-running inference."""
+        from src.llm import call_llm
+
+        mock_response = MagicMock()
+        mock_response.content = "slow response"
+
+        async def delayed_response(_: str) -> MagicMock:
+            await asyncio.sleep(0.03)
+            return mock_response
+
+        with (
+            patch("src.llm.ChatOllama") as mock_chat,
+            patch("src.llm.LLM_PROGRESS_LOG_INTERVAL_SECONDS", 0.01),
+            caplog.at_level("INFO"),
+        ):
+            mock_instance = MagicMock()
+            mock_instance.ainvoke = AsyncMock(side_effect=delayed_response)
+            mock_chat.return_value = mock_instance
+            result = await call_llm("Test prompt")
+
+        assert result == "slow response"
+        assert "LLM call in progress" in caplog.text
 
 
 class TestLLMError:

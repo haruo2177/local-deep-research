@@ -28,10 +28,23 @@ from src.tools.translate import (
 logger = logging.getLogger(__name__)
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 MANAGED_SERVICES = ("ollama", "searxng")
+COMPOSE_BASE_FILE = "docker-compose.yaml"
+COMPOSE_GPU_FILE = "docker-compose.gpu.yaml"
+HEALTH_CHECK_RETRIES = 15
+HEALTH_CHECK_RETRY_DELAY = 1.0
 
 
 class DependencyError(Exception):
     """Raised when required local services are unavailable."""
+
+
+def _is_nvidia_runtime_error(message: str) -> bool:
+    """Return True when docker compose failed because NVIDIA runtime is unavailable."""
+    normalized = message.lower()
+    return (
+        'could not select device driver "nvidia"' in normalized
+        and "capabilities: [[gpu]]" in normalized
+    )
 
 
 def _run_compose(args: list[str]) -> subprocess.CompletedProcess[str]:
@@ -61,14 +74,39 @@ def _run_compose(args: list[str]) -> subprocess.CompletedProcess[str]:
 def start_required_services() -> None:
     """Start required services."""
     logger.info("Starting services: %s", ", ".join(MANAGED_SERVICES))
-    _run_compose(["up", "-d", *MANAGED_SERVICES])
-    logger.info("Services started: %s", ", ".join(MANAGED_SERVICES))
+    gpu_args = [
+        "-f",
+        COMPOSE_BASE_FILE,
+        "-f",
+        COMPOSE_GPU_FILE,
+        "up",
+        "-d",
+        *MANAGED_SERVICES,
+    ]
+    cpu_args = ["-f", COMPOSE_BASE_FILE, "up", "-d", *MANAGED_SERVICES]
+    try:
+        _run_compose(gpu_args)
+        logger.info(
+            "Services started with GPU configuration: %s",
+            ", ".join(MANAGED_SERVICES),
+        )
+    except DependencyError as e:
+        if not _is_nvidia_runtime_error(str(e)):
+            raise
+        logger.warning(
+            "NVIDIA GPU runtime is unavailable. Falling back to CPU configuration."
+        )
+        _run_compose(cpu_args)
+        logger.info(
+            "Services started with CPU fallback: %s",
+            ", ".join(MANAGED_SERVICES),
+        )
 
 
 def stop_required_services() -> None:
     """Stop required services."""
     logger.info("Stopping services: %s", ", ".join(MANAGED_SERVICES))
-    _run_compose(["stop", *MANAGED_SERVICES])
+    _run_compose(["-f", COMPOSE_BASE_FILE, "stop", *MANAGED_SERVICES])
     logger.info("Services stopped: %s", ", ".join(MANAGED_SERVICES))
 
 
@@ -115,22 +153,138 @@ async def _check_service(
         raise DependencyError(f"{service_name} check failed at {url}: {e}") from e
 
 
+async def _check_service_with_retries(
+    *,
+    service_name: str,
+    url: str,
+    hint: str,
+    timeout: float = 3.0,
+    retries: int = HEALTH_CHECK_RETRIES,
+    retry_delay: float = HEALTH_CHECK_RETRY_DELAY,
+) -> None:
+    """Check service availability with retries for startup race conditions."""
+    last_error: DependencyError | None = None
+    for attempt in range(1, retries + 1):
+        try:
+            await _check_service(
+                service_name=service_name,
+                url=url,
+                hint=hint,
+                timeout=timeout,
+            )
+            return
+        except DependencyError as e:
+            last_error = e
+            if attempt == retries:
+                break
+            logger.info(
+                "Health check retry service=%s attempt=%s/%s wait=%.1fs",
+                service_name,
+                attempt,
+                retries,
+                retry_delay,
+            )
+            await asyncio.sleep(retry_delay)
+
+    if last_error is not None:
+        raise last_error
+
+
+def _required_ollama_models() -> list[str]:
+    """Return required Ollama model names in stable order without duplicates."""
+    ordered_models = [
+        settings.planner_model,
+        settings.worker_model,
+        settings.writer_model,
+    ]
+    required: list[str] = []
+    seen: set[str] = set()
+    for model in ordered_models:
+        if model and model not in seen:
+            seen.add(model)
+            required.append(model)
+    return required
+
+
+async def _fetch_ollama_model_names(
+    *,
+    ollama_base: str,
+    timeout: float = 5.0,
+) -> set[str]:
+    """Fetch available Ollama model names from /api/tags."""
+    url = f"{ollama_base.rstrip('/')}/api/tags"
+    logger.info("Checking Ollama models at %s", url)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url,
+                timeout=aiohttp.ClientTimeout(total=timeout),
+            ) as response:
+                if response.status >= 400:
+                    raise DependencyError(
+                        "Failed to fetch Ollama models "
+                        f"(HTTP {response.status}) at {url}."
+                    )
+                payload = await response.json()
+    except TimeoutError as e:
+        raise DependencyError(f"Ollama model list request timed out at {url}.") from e
+    except aiohttp.ClientConnectionError as e:
+        raise DependencyError(
+            f"Ollama model list connection error at {url}."
+        ) from e
+    except aiohttp.ClientError as e:
+        raise DependencyError(f"Ollama model list check failed at {url}: {e}") from e
+
+    models = payload.get("models", [])
+    names: set[str] = set()
+    for model in models:
+        if isinstance(model, dict):
+            name = model.get("name")
+            if isinstance(name, str) and name:
+                names.add(name)
+    logger.info("Detected %s Ollama models", len(names))
+    return names
+
+
+async def _check_required_ollama_models(*, ollama_base: str) -> None:
+    """Verify required Ollama models are available locally."""
+    required = _required_ollama_models()
+    available = await _fetch_ollama_model_names(ollama_base=ollama_base)
+    missing = [model for model in required if model not in available]
+    if not missing:
+        return
+
+    pull_commands = [f"docker exec ollama ollama pull {model}" for model in missing]
+    copy_paste_command = (
+        f"docker compose -f {COMPOSE_BASE_FILE} up -d ollama && "
+        + " && ".join(pull_commands)
+    )
+    logger.warning("Missing Ollama models: %s", ", ".join(missing))
+    raise DependencyError(
+        "Missing Ollama models: "
+        f"{', '.join(missing)}.\n"
+        "Copy and run this command, then retry:\n"
+        f"{copy_paste_command}"
+    )
+
+
 async def validate_runtime_dependencies() -> None:
     """Validate required local services before running full research."""
     ollama_base = settings.ollama_url.rstrip("/")
     searxng_base = settings.searxng_url.rstrip("/")
     logger.info("Validating runtime dependencies")
 
-    await _check_service(
+    await _check_service_with_retries(
         service_name="Ollama",
         url=f"{ollama_base}/api/tags",
         hint="Ensure Docker is running and Ollama container is healthy.",
     )
-    await _check_service(
+    await _check_service_with_retries(
         service_name="SearXNG",
         url=f"{searxng_base}/healthz",
         hint="Ensure Docker is running and SearXNG container is healthy.",
     )
+    await _check_required_ollama_models(ollama_base=ollama_base)
     logger.info("Runtime dependencies are ready")
 
 

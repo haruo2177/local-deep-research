@@ -6,6 +6,9 @@ import sys
 from io import StringIO
 from unittest.mock import AsyncMock, patch
 
+import pytest
+
+from src.config import settings
 from src.main import main
 
 
@@ -270,3 +273,157 @@ class TestFullResearchMode:
             result = asyncio.run(run_research("Test topic"))
 
         assert result == ""
+
+
+class TestServiceStartupFallback:
+    """Tests for docker compose startup fallback behavior."""
+
+    def test_start_required_services_falls_back_to_cpu_when_nvidia_unavailable(
+        self,
+    ) -> None:
+        """Startup should retry with CPU config when NVIDIA runtime is unavailable."""
+        from src.main import DependencyError, start_required_services
+
+        nvidia_error = (
+            'Failed to run `docker compose up -d ollama searxng`: '
+            'could not select device driver "nvidia" with capabilities: [[gpu]]'
+        )
+        with patch("src.main._run_compose") as mock_run:
+            mock_run.side_effect = [DependencyError(nvidia_error), None]
+            start_required_services()
+
+        assert mock_run.call_count == 2
+        assert mock_run.call_args_list[0].args[0] == [
+            "-f",
+            "docker-compose.yaml",
+            "-f",
+            "docker-compose.gpu.yaml",
+            "up",
+            "-d",
+            "ollama",
+            "searxng",
+        ]
+        assert mock_run.call_args_list[1].args[0] == [
+            "-f",
+            "docker-compose.yaml",
+            "up",
+            "-d",
+            "ollama",
+            "searxng",
+        ]
+
+    def test_start_required_services_raises_non_nvidia_errors(self) -> None:
+        """Startup should not swallow compose errors unrelated to NVIDIA runtime."""
+        from src.main import DependencyError, start_required_services
+
+        with patch("src.main._run_compose") as mock_run:
+            mock_run.side_effect = DependencyError("docker compose failed")
+            with pytest.raises(DependencyError, match="docker compose failed"):
+                start_required_services()
+
+        assert mock_run.call_count == 1
+
+
+class TestOllamaModelAvailability:
+    """Tests for required Ollama model checks."""
+
+    def test_required_ollama_models_unique_in_stable_order(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Required model list should preserve order and remove duplicates."""
+        from src.main import _required_ollama_models
+
+        monkeypatch.setattr(settings, "planner_model", "planner:1")
+        monkeypatch.setattr(settings, "worker_model", "worker:1")
+        monkeypatch.setattr(settings, "_writer_model", "planner:1")
+
+        assert _required_ollama_models() == ["planner:1", "worker:1"]
+
+    async def test_check_required_ollama_models_raises_with_pull_commands(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Missing models should raise DependencyError with pull commands."""
+        from src.main import DependencyError, _check_required_ollama_models
+
+        monkeypatch.setattr(settings, "planner_model", "planner:1")
+        monkeypatch.setattr(settings, "worker_model", "worker:1")
+        monkeypatch.setattr(settings, "_writer_model", "writer:1")
+
+        with patch("src.main._fetch_ollama_model_names", new_callable=AsyncMock) as mock_fetch:
+            mock_fetch.return_value = {"worker:1"}
+            with pytest.raises(DependencyError) as exc_info:
+                await _check_required_ollama_models(ollama_base="http://localhost:11434")
+
+        message = str(exc_info.value)
+        assert "Missing Ollama models: planner:1, writer:1." in message
+        assert "Copy and run this command, then retry:" in message
+        assert (
+            "docker compose -f docker-compose.yaml up -d ollama && "
+            "docker exec ollama ollama pull planner:1 && "
+            "docker exec ollama ollama pull writer:1"
+        ) in message
+
+    async def test_check_required_ollama_models_passes_when_all_present(
+        self, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """Model check should pass when all required models are available."""
+        from src.main import _check_required_ollama_models
+
+        monkeypatch.setattr(settings, "planner_model", "planner:1")
+        monkeypatch.setattr(settings, "worker_model", "worker:1")
+        monkeypatch.setattr(settings, "_writer_model", "writer:1")
+
+        with patch("src.main._fetch_ollama_model_names", new_callable=AsyncMock) as mock_fetch:
+            mock_fetch.return_value = {"planner:1", "worker:1", "writer:1"}
+            await _check_required_ollama_models(ollama_base="http://localhost:11434")
+
+
+class TestServiceHealthRetries:
+    """Tests for service health-check retry behavior."""
+
+    async def test_check_service_with_retries_succeeds_after_transient_failure(
+        self,
+    ) -> None:
+        """Retry helper should succeed when a later attempt passes."""
+        from src.main import DependencyError, _check_service_with_retries
+
+        with (
+            patch("src.main._check_service", new_callable=AsyncMock) as mock_check,
+            patch("src.main.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+        ):
+            mock_check.side_effect = [DependencyError("temporary"), None]
+            await _check_service_with_retries(
+                service_name="SearXNG",
+                url="http://localhost:8080/healthz",
+                hint="hint",
+                retries=3,
+                retry_delay=0.01,
+            )
+
+        assert mock_check.await_count == 2
+        mock_sleep.assert_awaited_once_with(0.01)
+
+    async def test_check_service_with_retries_raises_after_max_retries(self) -> None:
+        """Retry helper should raise the final DependencyError after max retries."""
+        from src.main import DependencyError, _check_service_with_retries
+
+        with (
+            patch("src.main._check_service", new_callable=AsyncMock) as mock_check,
+            patch("src.main.asyncio.sleep", new_callable=AsyncMock) as mock_sleep,
+        ):
+            mock_check.side_effect = [
+                DependencyError("fail-1"),
+                DependencyError("fail-2"),
+                DependencyError("fail-3"),
+            ]
+            with pytest.raises(DependencyError, match="fail-3"):
+                await _check_service_with_retries(
+                    service_name="SearXNG",
+                    url="http://localhost:8080/healthz",
+                    hint="hint",
+                    retries=3,
+                    retry_delay=0.01,
+                )
+
+        assert mock_check.await_count == 3
+        assert mock_sleep.await_count == 2

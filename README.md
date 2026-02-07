@@ -26,12 +26,12 @@ flowchart TD
 ## 必要要件
 
 ### ハードウェア
-- NVIDIA GPU（6GB VRAM以上）
+- NVIDIA GPU（6GB VRAM以上、GPU推論時）
 - 16GB以上のシステムRAM（推奨）
 
 ### ソフトウェア
 - Docker & Docker Compose
-- NVIDIA Container Toolkit
+- NVIDIA Container Toolkit（GPU推論時）
 - Python 3.13+
 - [uv](https://docs.astral.sh/uv/)（推奨）
 
@@ -47,7 +47,11 @@ cd local-deep-research
 ### 2. Docker環境の起動（初回モデル準備時）
 
 ```bash
+# CPUモード（デフォルト）
 docker compose up -d
+
+# GPUモード（NVIDIA環境）
+docker compose -f docker-compose.yaml -f docker-compose.gpu.yaml up -d
 ```
 
 ### 3. モデルのダウンロード
@@ -79,7 +83,7 @@ curl http://localhost:11434/api/tags
 # SearXNGヘルスチェック
 curl http://localhost:8080/healthz
 
-# GPU認識確認
+# GPU認識確認（GPUモード時のみ）
 docker exec ollama nvidia-smi
 ```
 
