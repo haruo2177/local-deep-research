@@ -158,7 +158,9 @@ class TestGraphResilience:
             ) as mock_reviewer,
             patch("src.nodes.writer.call_llm", new_callable=AsyncMock) as mock_writer,
         ):
-            mock_planner.return_value = '{"queries": ["q1", "q2", "q3", "q4"]}'
+            mock_planner.return_value = (
+                '{"queries": ["test research 1", "test research 2", "test research 3", "test research 4"]}'
+            )
             mock_search.return_value = []
             mock_reviewer.side_effect = mock_reviewer_response
             mock_writer.return_value = "# Report after iterations"

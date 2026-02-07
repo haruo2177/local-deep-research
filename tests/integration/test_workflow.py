@@ -58,7 +58,9 @@ class TestFullWorkflow:
             ) as mock_reviewer,
             patch("src.nodes.writer.call_llm", new_callable=AsyncMock) as mock_writer,
         ):
-            mock_planner.return_value = '{"queries": ["python async", "asyncio tutorial"]}'
+            mock_planner.return_value = (
+                '{"queries": ["test research overview", "research topic examples"]}'
+            )
             mock_search.return_value = search_results
             mock_scrape.return_value = []  # No content from scraping
             mock_scraper_llm.return_value = "Summary of content"
@@ -95,7 +97,9 @@ class TestFullWorkflow:
             ) as mock_reviewer,
             patch("src.nodes.writer.call_llm", new_callable=AsyncMock) as mock_writer,
         ):
-            mock_planner.return_value = '{"queries": ["q1", "q2", "q3", "q4", "q5"]}'
+            mock_planner.return_value = (
+                '{"queries": ["test research 1", "test research 2", "test research 3", "test research 4", "test research 5"]}'
+            )
             mock_search.return_value = []
             mock_reviewer.side_effect = mock_reviewer_response
             mock_writer.return_value = "# Report"
@@ -124,7 +128,9 @@ class TestFullWorkflow:
             mock_settings.max_iterations = 3
             mock_settings.planner_model = "test-model"
             mock_settings.worker_model = "test-model"
-            mock_planner.return_value = '{"queries": ["q1", "q2", "q3", "q4", "q5"]}'
+            mock_planner.return_value = (
+                '{"queries": ["test research 1", "test research 2", "test research 3", "test research 4", "test research 5"]}'
+            )
             mock_search.return_value = []
             mock_reviewer.return_value = '{"sufficient": false}'  # Never sufficient
             mock_writer.return_value = "# Report"
@@ -153,7 +159,9 @@ class TestWorkflowEdgeCases:
             patch("src.nodes.writer.call_llm", new_callable=AsyncMock) as mock_writer,
         ):
             # At least 2 queries needed for MIN_ITERATIONS
-            mock_planner.return_value = '{"queries": ["q1", "q2"]}'
+            mock_planner.return_value = (
+                '{"queries": ["test research basics", "research topic summary"]}'
+            )
             mock_search.return_value = []
             mock_reviewer.return_value = '{"sufficient": true}'
             mock_writer.return_value = "# Empty Report\n\nNo data found."
@@ -188,7 +196,9 @@ class TestWorkflowEdgeCases:
             ) as mock_reviewer,
             patch("src.nodes.writer.call_llm", new_callable=AsyncMock) as mock_writer,
         ):
-            mock_planner.return_value = '{"queries": ["q1", "q2"]}'
+            mock_planner.return_value = (
+                '{"queries": ["test research basics", "research topic summary"]}'
+            )
             mock_search.return_value = search_results
             mock_scrape.return_value = []
             mock_scraper_llm.return_value = "Summary of content"

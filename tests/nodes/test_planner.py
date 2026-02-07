@@ -15,7 +15,9 @@ class TestPlannerNode:
         from src.nodes.planner import planner_node
 
         with patch("src.nodes.planner.call_llm") as mock_llm:
-            mock_llm.return_value = '{"queries": ["query 1", "query 2", "query 3"]}'
+            mock_llm.return_value = (
+                '{"queries": ["langgraph basics", "langgraph tutorial", "langgraph examples"]}'
+            )
             state = {"task": "What is LangGraph?"}
 
             result = await planner_node(state)
@@ -30,13 +32,13 @@ class TestPlannerNode:
 
         with patch("src.nodes.planner.call_llm") as mock_llm:
             mock_llm.return_value = (
-                '{"queries": ["search for LangGraph docs", "LangGraph examples"]}'
+                '{"queries": ["langgraph docs", "langgraph examples"]}'
             )
             state = {"task": "What is LangGraph?"}
 
             result = await planner_node(state)
 
-            assert result["plan"] == ["search for LangGraph docs", "LangGraph examples"]
+            assert result["plan"] == ["langgraph docs", "langgraph examples"]
 
     async def test_planner_retries_on_invalid_json(self) -> None:
         """planner_node should retry when LLM returns invalid JSON."""
@@ -45,14 +47,14 @@ class TestPlannerNode:
         with patch("src.nodes.planner.call_llm") as mock_llm:
             mock_llm.side_effect = [
                 "not valid json",
-                '{"queries": ["valid query"]}',
+                '{"queries": ["test task guide"]}',
             ]
             state = {"task": "Test task"}
 
             result = await planner_node(state)
 
             assert mock_llm.call_count == 2
-            assert result["plan"] == ["valid query"]
+            assert result["plan"] == ["test task guide"]
 
     async def test_planner_max_retries_exceeded(self) -> None:
         """planner_node should raise PlannerError after max retries."""
@@ -89,7 +91,7 @@ class TestPlannerNode:
         from src.nodes.planner import planner_node
 
         with patch("src.nodes.planner.call_llm") as mock_llm:
-            mock_llm.return_value = '{"queries": ["test"]}'
+            mock_llm.return_value = '{"queries": ["test task guide"]}'
             state = {"task": "Test task"}
 
             await planner_node(state)
@@ -137,6 +139,49 @@ class TestPlannerNode:
 
         with pytest.raises(ValueError):
             await planner_node(state)
+
+    async def test_planner_retries_on_quality_gate_failure(self) -> None:
+        """品質ゲートでクエリが棄却された場合に再試行することを確認する。"""
+        from src.nodes.planner import planner_node
+
+        with patch("src.nodes.planner.call_llm") as mock_llm:
+            mock_llm.side_effect = [
+                '{"queries": ["cafecoast menu", "tripadvisor australia"]}',
+                '{"queries": ["ゆる言語学 ラジオ", "ゆる言語学 チャンネル"]}',
+            ]
+            state = {"task": "ゆる言語学ラジオ"}
+
+            result = await planner_node(state)
+
+            assert mock_llm.call_count == 2
+            assert result["plan"] == ["ゆる言語学 ラジオ", "ゆる言語学 チャンネル"]
+
+    async def test_planner_falls_back_when_quality_retries_exhausted(self) -> None:
+        """品質ゲートの再試行上限到達時にタスク文字列へフォールバックすることを確認する。"""
+        from src.nodes.planner import planner_node
+
+        with patch("src.nodes.planner.call_llm") as mock_llm:
+            mock_llm.return_value = '{"queries": ["random podcast", "news today"]}'
+            state = {"task": "ゆる言語学ラジオ"}
+
+            result = await planner_node(state)
+
+            assert mock_llm.call_count == 3
+            assert result["plan"] == ["ゆる言語学ラジオ"]
+
+    async def test_planner_normalizes_and_deduplicates_queries(self) -> None:
+        """クエリ正規化（空白統一）と重複除去が適用されることを確認する。"""
+        from src.nodes.planner import planner_node
+
+        with patch("src.nodes.planner.call_llm") as mock_llm:
+            mock_llm.return_value = (
+                '{"queries": ["  LangGraph　tutorial  ", "LangGraph tutorial", "LangGraph basics"]}'
+            )
+            state = {"task": "What is LangGraph?"}
+
+            result = await planner_node(state)
+
+            assert result["plan"] == ["LangGraph tutorial", "LangGraph basics"]
 
 
 class TestPlannerError:
