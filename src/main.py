@@ -323,14 +323,14 @@ async def run_research(task: str) -> str:
     report: str = result.get("report", "")
     steps = result.get("steps_completed", 0)
     source_language = result.get("source_language", "")
-    translated_task = result.get("task", "")
+    current_task = result.get("task", "")
     original_task = result.get("original_task", "")
     elapsed = time.perf_counter() - start_time
     logger.info(
-        "Research context source_language=%s original_task=%s translated_task=%s",
+        "Research context source_language=%s original_task=%s current_task=%s",
         source_language,
         preview_text(str(original_task), max_chars=120),
-        preview_text(str(translated_task), max_chars=120),
+        preview_text(str(current_task), max_chars=120),
     )
     logger.info("Research final report preview=%s", preview_text(report))
     logger.info("Research end task=%s steps=%s elapsed=%.2fs", task, steps, elapsed)

@@ -24,7 +24,7 @@ async def reviewer_node(state: dict[str, Any]) -> dict[str, Any]:
     Returns:
         A dict with is_sufficient (bool).
     """
-    task = state.get("task", "")
+    task = state.get("original_task") or state.get("task", "")
     content = state.get("content", [])
     steps_completed = state.get("steps_completed", 0)
     logger.info(

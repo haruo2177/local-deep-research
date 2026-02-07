@@ -30,7 +30,7 @@ async def writer_node(state: dict[str, Any]) -> dict[str, Any]:
     Raises:
         WriterError: If LLM call fails.
     """
-    task = state.get("task", "")
+    task = state.get("original_task") or state.get("task", "")
     content = state.get("content", [])
     references = state.get("references", [])
     logger.info(

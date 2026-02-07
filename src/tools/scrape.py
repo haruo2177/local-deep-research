@@ -3,10 +3,20 @@
 from __future__ import annotations
 
 import asyncio
+import logging
+import time
 from dataclasses import dataclass
 from urllib.parse import urlparse
 
 from crawl4ai import AsyncWebCrawler, BrowserConfig, CrawlerRunConfig
+
+logger = logging.getLogger(__name__)
+
+ANSI_RESET = "\x1b[0m"
+ANSI_CYAN = "\x1b[36m"
+ANSI_GREEN = "\x1b[32m"
+ANSI_YELLOW = "\x1b[33m"
+ANSI_RED = "\x1b[31m"
 
 
 @dataclass
@@ -24,6 +34,11 @@ class ScrapeError(Exception):
     """Exception raised when scraping fails."""
 
     pass
+
+
+def _colorize(message: str, color: str) -> str:
+    """Wrap message with ANSI color for terminal output."""
+    return f"{color}{message}{ANSI_RESET}"
 
 
 def _validate_url(url: str) -> None:
@@ -66,8 +81,11 @@ async def scrape(
     """
     _validate_url(url)
 
-    browser_config = BrowserConfig(headless=True)
-    run_config = CrawlerRunConfig()
+    started_at = time.perf_counter()
+    logger.info("%s", _colorize(f"[FETCH] start url={url}", ANSI_CYAN))
+
+    browser_config = BrowserConfig(headless=True, verbose=False)
+    run_config = CrawlerRunConfig(verbose=False)
 
     try:
         async with AsyncWebCrawler(config=browser_config) as crawler:
@@ -77,11 +95,20 @@ async def scrape(
             )
 
             if not result.success:
+                elapsed = time.perf_counter() - started_at
+                error_message = result.error_message or "Unknown error"
+                logger.warning(
+                    "%s",
+                    _colorize(
+                        f"[COMPLETE] failed url={url} elapsed={elapsed:.2f}s error={error_message}",
+                        ANSI_YELLOW,
+                    ),
+                )
                 return ScrapeResult(
                     url=url,
                     markdown="",
                     success=False,
-                    error_message=result.error_message or "Unknown error",
+                    error_message=error_message,
                 )
 
             if hasattr(result.markdown, "raw_markdown"):
@@ -92,6 +119,14 @@ async def scrape(
             if len(markdown) > max_content_length:
                 markdown = markdown[:max_content_length] + "\n\n[Content truncated]"
 
+            elapsed = time.perf_counter() - started_at
+            logger.info(
+                "%s",
+                _colorize(
+                    f"[COMPLETE] success url={result.url or url} elapsed={elapsed:.2f}s chars={len(markdown)}",
+                    ANSI_GREEN,
+                ),
+            )
             return ScrapeResult(
                 url=result.url or url,
                 markdown=markdown,
@@ -99,6 +134,14 @@ async def scrape(
             )
 
     except TimeoutError:
+        elapsed = time.perf_counter() - started_at
+        logger.warning(
+            "%s",
+            _colorize(
+                f"[COMPLETE] timeout url={url} elapsed={elapsed:.2f}s timeout={timeout:.1f}s",
+                ANSI_YELLOW,
+            ),
+        )
         return ScrapeResult(
             url=url,
             markdown="",
@@ -106,6 +149,14 @@ async def scrape(
             error_message=f"Scrape timeout after {timeout}s",
         )
     except Exception as e:
+        elapsed = time.perf_counter() - started_at
+        logger.error(
+            "%s",
+            _colorize(
+                f"[COMPLETE] error url={url} elapsed={elapsed:.2f}s error={e}",
+                ANSI_RED,
+            ),
+        )
         return ScrapeResult(
             url=url,
             markdown="",

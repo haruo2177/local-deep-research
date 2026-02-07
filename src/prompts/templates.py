@@ -13,6 +13,9 @@ The JSON must have this exact format:
 Rules:
 - Generate 3-5 SHORT keyword-based search queries (2-5 words each)
 - Do NOT use question format
+- Use the same language and script as the user query
+- Do NOT mix multiple languages in a single query
+- Preserve named entities exactly as given in the user query
 - Example: "quantum computer basics", "qubit error correction"
 """
 
@@ -49,6 +52,7 @@ Write a well-structured report in Markdown format with:
 2. Main findings organized by topic
 3. A conclusion
 4. Properly cited references
+Use the same language as the Query for the entire report.
 """
 
 

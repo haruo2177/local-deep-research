@@ -15,21 +15,15 @@ class TestTranslatorInputNode:
         """Should detect language and set source_language in state."""
         from src.nodes.translator import translator_input_node
 
-        with (
-            patch("src.nodes.translator.detect_language") as mock_detect,
-            patch("src.nodes.translator.translate_to_english") as mock_translate,
-        ):
+        with patch("src.nodes.translator.detect_language") as mock_detect:
             mock_detect.return_value = "ja"
-            mock_result = MagicMock()
-            mock_result.translated_text = "Hello"
-            mock_translate.return_value = mock_result
             state = {"task": "こんにちは"}
 
             result = await translator_input_node(state)
 
             assert result["source_language"] == "ja"
             assert result["original_task"] == "こんにちは"
-            assert result["task"] == "Hello"
+            assert result["task"] == "こんにちは"
 
     @pytest.mark.asyncio
     async def test_english_task_unchanged(self) -> None:
@@ -150,3 +144,15 @@ class TestTranslatorOutputNode:
 
             # Empty dict means no changes (keep original report)
             assert result == {}
+
+    @pytest.mark.asyncio
+    async def test_skips_translation_when_report_is_not_english(self) -> None:
+        """Should skip output translation when report is already non-English."""
+        from src.nodes.translator import translator_output_node
+
+        with patch("src.nodes.translator.translate_from_english") as mock_translate:
+            state = {"report": "日本語のレポートです。", "source_language": "ja"}
+            result = await translator_output_node(state)
+
+            assert result == {}
+            mock_translate.assert_not_called()
