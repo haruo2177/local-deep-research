@@ -74,7 +74,7 @@ class TestTranslateToEnglish:
         assert len(result.translated_text) > 0
 
     def test_english_passthrough(self) -> None:
-        """Should return same text for English input."""
+        """入力言語が英語の場合は無変換でそのまま返すことを確認する。"""
         from src.tools.translate import translate_to_english
 
         result = translate_to_english("Hello world", "en")
@@ -83,7 +83,7 @@ class TestTranslateToEnglish:
         assert result.target_language == "en"
 
     def test_unsupported_language_raises(self) -> None:
-        """Should raise TranslationError for unsupported language."""
+        """未対応言語コードを指定すると TranslationError が送出されることを確認する。"""
         from src.tools.translate import TranslationError, translate_to_english
 
         with pytest.raises(TranslationError):

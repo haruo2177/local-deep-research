@@ -43,7 +43,7 @@ class TestTranslatorInputNode:
 
     @pytest.mark.asyncio
     async def test_translation_disabled(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """Should skip translation when disabled."""
+        """ENABLE_TRANSLATION=false のとき入力翻訳をスキップすることを確認する。"""
         monkeypatch.setenv("ENABLE_TRANSLATION", "false")
 
         # Reload settings with new environment variable
