@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 from src.config import settings
@@ -10,6 +11,7 @@ from src.llm import LLMError, call_llm
 from src.prompts.templates import format_planner_prompt
 
 MAX_RETRIES = 3
+logger = logging.getLogger(__name__)
 
 
 class PlannerError(Exception):
@@ -34,21 +36,31 @@ async def planner_node(state: dict[str, Any]) -> dict[str, Any]:
     if not task or not task.strip():
         raise ValueError("task cannot be empty")
 
+    logger.info("Planner start task=%s", task)
     prompt = format_planner_prompt(task)
 
     for attempt in range(MAX_RETRIES):
         try:
+            logger.info("Planner LLM call attempt=%s/%s", attempt + 1, MAX_RETRIES)
             response = await call_llm(prompt, model=settings.planner_model)
             queries = _parse_queries(response)
 
             if not queries:
                 queries = [task]
+                logger.info("Planner produced empty queries; fallback to task")
 
+            logger.info("Planner end queries=%s", len(queries))
             return {"plan": queries}
 
         except LLMError as e:
+            logger.exception("Planner LLM call failed at attempt=%s", attempt + 1)
             raise PlannerError(f"LLM call failed: {e}") from e
         except json.JSONDecodeError as e:
+            logger.warning(
+                "Planner JSON parse failed at attempt=%s/%s",
+                attempt + 1,
+                MAX_RETRIES,
+            )
             if attempt == MAX_RETRIES - 1:
                 raise PlannerError(
                     f"Failed to parse JSON response after {MAX_RETRIES} retries"

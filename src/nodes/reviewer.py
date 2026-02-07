@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from typing import Any
 
 from src.config import settings
@@ -10,6 +11,7 @@ from src.llm import call_llm
 from src.prompts.templates import format_reviewer_prompt
 
 MIN_ITERATIONS = 2
+logger = logging.getLogger(__name__)
 
 
 async def reviewer_node(state: dict[str, Any]) -> dict[str, Any]:
@@ -24,12 +26,25 @@ async def reviewer_node(state: dict[str, Any]) -> dict[str, Any]:
     task = state.get("task", "")
     content = state.get("content", [])
     steps_completed = state.get("steps_completed", 0)
+    logger.info(
+        "Reviewer start step=%s content_items=%s",
+        steps_completed,
+        len(content),
+    )
 
     if steps_completed >= settings.max_iterations:
+        logger.info(
+            "Reviewer forcing sufficient due to max_iterations=%s",
+            settings.max_iterations,
+        )
         return {"is_sufficient": True}
 
     # Require minimum iterations before allowing "sufficient"
     if steps_completed < MIN_ITERATIONS:
+        logger.info(
+            "Reviewer insufficient because minimum iterations not reached min=%s",
+            MIN_ITERATIONS,
+        )
         return {"is_sufficient": False}
 
     prompt = format_reviewer_prompt(task, content)
@@ -41,6 +56,7 @@ async def reviewer_node(state: dict[str, Any]) -> dict[str, Any]:
     except json.JSONDecodeError:
         is_sufficient = False
 
+    logger.info("Reviewer end sufficient=%s", is_sufficient)
     return {"is_sufficient": is_sufficient}
 
 

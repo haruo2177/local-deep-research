@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from src.config import settings
@@ -11,6 +12,9 @@ from src.prompts.templates import format_writer_prompt
 
 class WriterError(Exception):
     """Writer node error."""
+
+
+logger = logging.getLogger(__name__)
 
 
 async def writer_node(state: dict[str, Any]) -> dict[str, Any]:
@@ -28,12 +32,20 @@ async def writer_node(state: dict[str, Any]) -> dict[str, Any]:
     task = state.get("task", "")
     content = state.get("content", [])
     references = state.get("references", [])
+    logger.info(
+        "Writer start task=%s content_items=%s references=%s",
+        task,
+        len(content),
+        len(references),
+    )
 
     prompt = format_writer_prompt(task, content, references)
 
     try:
-        report = await call_llm(prompt, model=settings.planner_model)
+        report = await call_llm(prompt, model=settings.writer_model)
     except LLMError as e:
+        logger.exception("Writer LLM call failed")
         raise WriterError(f"LLM call failed: {e}") from e
 
+    logger.info("Writer end report_chars=%s", len(report))
     return {"report": report}
