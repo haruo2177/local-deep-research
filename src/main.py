@@ -7,6 +7,7 @@ import asyncio
 import logging
 import subprocess
 import time
+from collections import defaultdict
 from pathlib import Path
 
 import aiohttp
@@ -17,6 +18,7 @@ from src.llm import call_llm
 from src.logging_utils import preview_text
 from src.nodes.planner import planner_node
 from src.prompts.templates import format_summarizer_prompt
+from src.state import TimingEvent
 from src.tools.scrape import scrape
 from src.tools.search import search
 from src.tools.translate import (
@@ -33,6 +35,15 @@ COMPOSE_BASE_FILE = "docker-compose.yaml"
 COMPOSE_GPU_FILE = "docker-compose.gpu.yaml"
 HEALTH_CHECK_RETRIES = 15
 HEALTH_CHECK_RETRY_DELAY = 1.0
+DEFAULT_FLOW_ORDER = (
+    "planner",
+    "translator_input",
+    "researcher",
+    "scraper",
+    "reviewer",
+    "writer",
+    "translator_output",
+)
 
 
 class DependencyError(Exception):
@@ -317,6 +328,7 @@ async def run_research(task: str) -> str:
         "original_task": "",
         "empty_cycles": 0,
         "empty_cycle_streak": 0,
+        "node_timing_events": [],
     }
 
     result = await graph.ainvoke(initial_state)
@@ -333,8 +345,59 @@ async def run_research(task: str) -> str:
         preview_text(str(current_task), max_chars=120),
     )
     logger.info("Research final report preview=%s", preview_text(report))
+    _log_flow_timing_summary(result.get("node_timing_events", []))
     logger.info("Research end task=%s steps=%s elapsed=%.2fs", task, steps, elapsed)
     return report
+
+
+def _log_flow_timing_summary(events: list[TimingEvent]) -> None:
+    """Log per-flow timing summary aggregated across the whole run."""
+    if not events:
+        logger.info("Flow timings summary: no events captured")
+        return
+
+    total_by_node: dict[str, float] = defaultdict(float)
+    calls_by_node: dict[str, int] = defaultdict(int)
+
+    for event in events:
+        node = event.get("node", "unknown")
+        elapsed = float(event.get("elapsed_seconds", 0.0))
+        total_by_node[node] += elapsed
+        calls_by_node[node] += 1
+
+    logger.info("Flow timings summary start")
+    logged_nodes: set[str] = set()
+    for node in DEFAULT_FLOW_ORDER:
+        if node not in total_by_node:
+            continue
+        total = total_by_node[node]
+        calls = calls_by_node[node]
+        avg = total / calls if calls else 0.0
+        logger.info(
+            "Flow timing summary node=%s total=%.2fs calls=%s avg=%.2fs",
+            node,
+            total,
+            calls,
+            avg,
+        )
+        logged_nodes.add(node)
+
+    for node in sorted(total_by_node):
+        if node in logged_nodes:
+            continue
+        total = total_by_node[node]
+        calls = calls_by_node[node]
+        avg = total / calls if calls else 0.0
+        logger.info(
+            "Flow timing summary node=%s total=%.2fs calls=%s avg=%.2fs",
+            node,
+            total,
+            calls,
+            avg,
+        )
+
+    total_runtime = sum(total_by_node.values())
+    logger.info("Flow timings summary end total_node_time=%.2fs", total_runtime)
 
 
 async def demo_search(query: str) -> None:

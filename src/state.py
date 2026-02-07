@@ -6,6 +6,13 @@ import operator
 from typing import Annotated, TypedDict
 
 
+class TimingEvent(TypedDict):
+    """Per-node timing event captured during graph execution."""
+
+    node: str
+    elapsed_seconds: float
+
+
 class ResearchState(TypedDict):
     """State schema for the Deep Research LangGraph workflow.
 
@@ -23,6 +30,7 @@ class ResearchState(TypedDict):
         original_task: The original user query before translation.
         empty_cycles: Total count of cycles where the plan was already exhausted.
         empty_cycle_streak: Current streak length of consecutive empty cycles.
+        node_timing_events: Per-node elapsed time events captured during execution.
     """
 
     task: str
@@ -38,3 +46,4 @@ class ResearchState(TypedDict):
     original_task: str
     empty_cycles: int
     empty_cycle_streak: int
+    node_timing_events: Annotated[list[TimingEvent], operator.add]
