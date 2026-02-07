@@ -147,20 +147,32 @@ class TestFullResearchMode:
         assert call_args["scraped_urls"] == []
         assert call_args["is_sufficient"] is False
         assert call_args["report"] == ""
+        assert call_args["empty_cycles"] == 0
+        assert call_args["empty_cycle_streak"] == 0
+        assert call_args["source_language"] == ""
+        assert call_args["original_task"] == ""
         assert result == "Research Report"
 
     def test_main_without_demo_runs_research(self) -> None:
         """Running without --demo should execute full research mode."""
         with (
             patch.object(sys, "argv", ["main", "What is AI?"]),
+            patch("src.main.start_required_services") as mock_start,
+            patch(
+                "src.main.validate_runtime_dependencies", new_callable=AsyncMock
+            ) as mock_validate,
             patch("src.main.run_research", new_callable=AsyncMock) as mock_run,
+            patch("src.main.stop_required_services") as mock_stop,
             patch("sys.stdout", new=StringIO()) as mock_stdout,
         ):
             mock_run.return_value = "# AI Research Report\n\nAI is..."
             main()
             output = mock_stdout.getvalue()
 
+        mock_start.assert_called_once()
+        mock_validate.assert_called_once()
         mock_run.assert_called_once_with("What is AI?")
+        mock_stop.assert_called_once()
         assert "AI Research Report" in output
 
     def test_output_flag_saves_to_file(self) -> None:
@@ -175,18 +187,75 @@ class TestFullResearchMode:
                 patch.object(
                     sys, "argv", ["main", "--output", output_path, "Test topic"]
                 ),
+                patch("src.main.start_required_services") as mock_start,
+                patch(
+                    "src.main.validate_runtime_dependencies", new_callable=AsyncMock
+                ) as mock_validate,
                 patch("src.main.run_research", new_callable=AsyncMock) as mock_run,
+                patch("src.main.stop_required_services") as mock_stop,
                 patch("sys.stdout", new=StringIO()),
             ):
                 mock_run.return_value = "# Test Report\n\nContent here."
                 main()
 
+            mock_start.assert_called_once()
+            mock_validate.assert_called_once()
+            mock_stop.assert_called_once()
             # Verify file was written
             assert os.path.exists(output_path)
             with open(output_path, encoding="utf-8") as f:
                 content = f.read()
             assert "# Test Report" in content
             assert "Content here." in content
+
+    def test_main_prints_dependency_error_and_skips_research(self) -> None:
+        """Main should print actionable dependency error and exit early."""
+        from src.main import DependencyError
+
+        with (
+            patch.object(sys, "argv", ["main", "What is AI?"]),
+            patch("src.main.start_required_services") as mock_start,
+            patch(
+                "src.main.validate_runtime_dependencies", new_callable=AsyncMock
+            ) as mock_validate,
+            patch("src.main.run_research", new_callable=AsyncMock) as mock_run,
+            patch("src.main.stop_required_services") as mock_stop,
+            patch("sys.stdout", new=StringIO()) as mock_stdout,
+        ):
+            mock_validate.side_effect = DependencyError(
+                "Ollama connection error at http://localhost:11434/api/tags."
+            )
+            main()
+            output = mock_stdout.getvalue()
+
+        mock_start.assert_called_once()
+        mock_validate.assert_called_once()
+        mock_run.assert_not_called()
+        mock_stop.assert_called_once()
+        assert "Error:" in output
+        assert "Ollama connection error" in output
+
+    def test_main_skips_stop_when_start_fails(self) -> None:
+        """Stop should be skipped when service start fails."""
+        from src.main import DependencyError
+
+        with (
+            patch.object(sys, "argv", ["main", "What is AI?"]),
+            patch("src.main.start_required_services") as mock_start,
+            patch(
+                "src.main.validate_runtime_dependencies", new_callable=AsyncMock
+            ) as mock_validate,
+            patch("src.main.run_research", new_callable=AsyncMock) as mock_run,
+            patch("src.main.stop_required_services") as mock_stop,
+            patch("sys.stdout", new=StringIO()),
+        ):
+            mock_start.side_effect = DependencyError("docker compose failed")
+            main()
+
+        mock_start.assert_called_once()
+        mock_validate.assert_not_called()
+        mock_run.assert_not_called()
+        mock_stop.assert_not_called()
 
     def test_run_research_returns_empty_on_no_report(self) -> None:
         """run_research should return empty string if no report in result."""

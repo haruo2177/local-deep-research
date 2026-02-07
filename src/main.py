@@ -4,6 +4,12 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import logging
+import subprocess
+import time
+from pathlib import Path
+
+import aiohttp
 
 from src.config import settings
 from src.graph import build_graph
@@ -19,6 +25,114 @@ from src.tools.translate import (
     translate_to_english,
 )
 
+logger = logging.getLogger(__name__)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+MANAGED_SERVICES = ("ollama", "searxng")
+
+
+class DependencyError(Exception):
+    """Raised when required local services are unavailable."""
+
+
+def _run_compose(args: list[str]) -> subprocess.CompletedProcess[str]:
+    """Run docker compose command in project root."""
+    command = ["docker", "compose", *args]
+    try:
+        return subprocess.run(
+            command,
+            cwd=PROJECT_ROOT,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError as e:
+        raise DependencyError(
+            "`docker` command was not found. Please install Docker and Docker Compose."
+        ) from e
+    except subprocess.CalledProcessError as e:
+        details = (e.stderr or e.stdout or "").strip()
+        if details:
+            raise DependencyError(
+                f"Failed to run `{' '.join(command)}`: {details}"
+            ) from e
+        raise DependencyError(f"Failed to run `{' '.join(command)}`.") from e
+
+
+def start_required_services() -> None:
+    """Start required services."""
+    logger.info("Starting services: %s", ", ".join(MANAGED_SERVICES))
+    _run_compose(["up", "-d", *MANAGED_SERVICES])
+    logger.info("Services started: %s", ", ".join(MANAGED_SERVICES))
+
+
+def stop_required_services() -> None:
+    """Stop required services."""
+    logger.info("Stopping services: %s", ", ".join(MANAGED_SERVICES))
+    _run_compose(["stop", *MANAGED_SERVICES])
+    logger.info("Services stopped: %s", ", ".join(MANAGED_SERVICES))
+
+
+def configure_logging() -> None:
+    """Configure root logger with timestamped output once."""
+    if logging.getLogger().handlers:
+        return
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%Y-%m-%d %H:%M:%S",
+    )
+
+
+async def _check_service(
+    *,
+    service_name: str,
+    url: str,
+    hint: str,
+    timeout: float = 3.0,
+) -> None:
+    """Check service availability via HTTP GET."""
+    logger.info("Health check start service=%s url=%s", service_name, url)
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                url,
+                timeout=aiohttp.ClientTimeout(total=timeout),
+            ) as response:
+                if response.status >= 400:
+                    raise DependencyError(
+                        f"{service_name} returned HTTP {response.status} at {url}. {hint}"
+                    )
+        logger.info("Health check ok service=%s", service_name)
+    except TimeoutError as e:
+        raise DependencyError(
+            f"{service_name} timed out at {url}. {hint}"
+        ) from e
+    except aiohttp.ClientConnectionError as e:
+        raise DependencyError(
+            f"{service_name} connection error at {url}. {hint}"
+        ) from e
+    except aiohttp.ClientError as e:
+        raise DependencyError(f"{service_name} check failed at {url}: {e}") from e
+
+
+async def validate_runtime_dependencies() -> None:
+    """Validate required local services before running full research."""
+    ollama_base = settings.ollama_url.rstrip("/")
+    searxng_base = settings.searxng_url.rstrip("/")
+    logger.info("Validating runtime dependencies")
+
+    await _check_service(
+        service_name="Ollama",
+        url=f"{ollama_base}/api/tags",
+        hint="Ensure Docker is running and Ollama container is healthy.",
+    )
+    await _check_service(
+        service_name="SearXNG",
+        url=f"{searxng_base}/healthz",
+        hint="Ensure Docker is running and SearXNG container is healthy.",
+    )
+    logger.info("Runtime dependencies are ready")
+
 
 async def run_research(task: str) -> str:
     """Run the full research pipeline.
@@ -29,6 +143,9 @@ async def run_research(task: str) -> str:
     Returns:
         The generated research report.
     """
+    configure_logging()
+    start_time = time.perf_counter()
+    logger.info("Research start task=%s", task)
     graph = build_graph()
 
     initial_state = {
@@ -43,10 +160,15 @@ async def run_research(task: str) -> str:
         "report": "",
         "source_language": "",
         "original_task": "",
+        "empty_cycles": 0,
+        "empty_cycle_streak": 0,
     }
 
     result = await graph.ainvoke(initial_state)
     report: str = result.get("report", "")
+    steps = result.get("steps_completed", 0)
+    elapsed = time.perf_counter() - start_time
+    logger.info("Research end task=%s steps=%s elapsed=%.2fs", task, steps, elapsed)
     return report
 
 
@@ -156,6 +278,7 @@ def demo_translate(text: str) -> None:
 
 def main() -> None:
     """Run the Deep Research agent."""
+    configure_logging()
     parser = argparse.ArgumentParser(
         description="Local Deep Research - Autonomous research agent"
     )
@@ -199,7 +322,25 @@ def main() -> None:
             print("Error: Please provide a research topic")
             return
 
-        report = asyncio.run(run_research(args.input))
+        services_started = False
+        try:
+            start_required_services()
+            services_started = True
+            asyncio.run(validate_runtime_dependencies())
+            logger.info("Running full research pipeline")
+            report = asyncio.run(run_research(args.input))
+        except DependencyError as e:
+            print(f"Error: {e}")
+            return
+        except Exception:
+            logger.exception("Unexpected error during research execution")
+            raise
+        finally:
+            if services_started:
+                try:
+                    stop_required_services()
+                except DependencyError as e:
+                    print(f"Warning: Failed to stop services: {e}")
 
         if args.output:
             with open(args.output, "w", encoding="utf-8") as f:
